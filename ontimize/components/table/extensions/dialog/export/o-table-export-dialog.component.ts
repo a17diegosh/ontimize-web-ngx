@@ -1,9 +1,9 @@
-import { Component, Inject, Injector, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA, MatButton } from '@angular/material';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, Inject, Injector, OnInit, ViewEncapsulation } from '@angular/core';
+import { MAT_DIALOG_DATA, MatButton, MatDialogRef } from '@angular/material';
 
 import { DialogService, OExportExtension, OntimizeExportService, OTranslateService } from '../../../../../services';
-import { SQLTypes, Util, Codes } from '../../../../../utils';
-import { HttpErrorResponse } from '@angular/common/http';
+import { Codes, SQLTypes, Util } from '../../../../../utils';
 
 export class OTableExportConfiguration {
   data: any[];
@@ -18,10 +18,12 @@ export class OTableExportConfiguration {
   selector: 'o-table-export-dialog',
   templateUrl: 'o-table-export-dialog.component.html',
   styleUrls: ['o-table-export-dialog.component.scss'],
+  providers: [OntimizeExportService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     'class': 'o-table-export-dialog'
-  }
+  },
+  encapsulation: ViewEncapsulation.None
 })
 export class OTableExportDialogComponent implements OnInit {
 
@@ -76,7 +78,7 @@ export class OTableExportDialogComponent implements OnInit {
         self.exportService.downloadFile(resp.data[0]['xslxId'], OExportExtension.Excel).subscribe(
           () => self.dialogRef.close(true),
           downloadError => {
-            console.log(downloadError);
+            console.error(downloadError);
             self.dialogRef.close(false);
           }
         );
@@ -104,7 +106,7 @@ export class OTableExportDialogComponent implements OnInit {
           self.exportService.downloadFile(resp.data[0]['htmlId'], OExportExtension.HTML).subscribe(
             () => self.dialogRef.close(true),
             downloadError => {
-              console.log(downloadError);
+              console.error(downloadError);
               self.dialogRef.close(false);
             }
           );
@@ -132,7 +134,7 @@ export class OTableExportDialogComponent implements OnInit {
           self.exportService.downloadFile(resp.data[0]['pdfId'], OExportExtension.PDF).subscribe(
             () => self.dialogRef.close(true),
             downloadError => {
-              console.log(downloadError);
+              console.error(downloadError);
               self.dialogRef.close(false);
             }
           );
@@ -160,7 +162,7 @@ export class OTableExportDialogComponent implements OnInit {
   }
 
   protected handleError(err): void {
-    console.log(err);
+    console.error(err);
     const self = this;
     if (err instanceof HttpErrorResponse) {
       this.dialogService.alert('ERROR', err.message).then(() => self.dialogRef.close(false));

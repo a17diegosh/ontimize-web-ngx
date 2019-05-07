@@ -1,12 +1,12 @@
-import { AfterViewInit, AfterViewChecked, ChangeDetectionStrategy, ChangeDetectorRef, Component, Injector, NgModule, OnDestroy, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MediaChange, MediaObserver } from '@angular/flex-layout';
-import { Subscription } from 'rxjs';
-
-import { OSharedModule } from '../../shared/shared.module';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, Injector, NgModule, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { AppMenuService, OTranslateService } from '../../services';
+import { MediaChange, MediaObserver } from '@angular/flex-layout';
 import { MenuGroup, MenuRootItem } from '../../services/app-menu.service';
+
+import { CommonModule } from '@angular/common';
 import { OCardMenuItemModule } from '../../components/card-menu-item/o-card-menu-item.component';
+import { OSharedModule } from '../../shared/shared.module';
+import { Subscription } from 'rxjs';
 
 export const DEFAULT_INPUTS_O_MENU_LAYOUT = [
   'parentMenuId : parent-menu-id'
@@ -28,7 +28,7 @@ export const DEFAULT_OUTPUTS_O_MENU_LAYOUT = [
   },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class OCardMenuLayoutComponent implements AfterViewChecked, AfterViewInit, OnDestroy {
+export class OCardMenuLayoutComponent implements AfterViewInit, OnDestroy {
 
   public static DEFAULT_INPUTS_O_MENU_LAYOUT = DEFAULT_INPUTS_O_MENU_LAYOUT;
   public static DEFAULT_OUTPUTS_O_MENU_LAYOUT = DEFAULT_OUTPUTS_O_MENU_LAYOUT;
@@ -50,7 +50,7 @@ export class OCardMenuLayoutComponent implements AfterViewChecked, AfterViewInit
     this.cd.detectChanges();
   }
   protected _isSmallScreen: boolean = false;
-
+  
   constructor(
     private injector: Injector,
     private cd: ChangeDetectorRef
@@ -65,7 +65,7 @@ export class OCardMenuLayoutComponent implements AfterViewChecked, AfterViewInit
     });
   }
 
-  ngAfterViewInit() {
+  public ngAfterViewInit(): void {
     this.setCardMenuItems();
   }
 
@@ -89,10 +89,10 @@ export class OCardMenuLayoutComponent implements AfterViewChecked, AfterViewInit
     }
   }
 
-  setCardMenuItems() {
+  public setCardMenuItems(): void {
     let cardItemsAux = [];
     if (!this.parentMenuId) {
-      cardItemsAux = this.menuRoots.filter((item) => !this.appMenuService.isMenuGroup(item));
+      cardItemsAux = this.menuRoots.filter(item => !this.appMenuService.isMenuGroup(item));
     } else {
       cardItemsAux = this.getItemsFilteredByParentId(this.menuRoots);
     }
@@ -110,8 +110,8 @@ export class OCardMenuLayoutComponent implements AfterViewChecked, AfterViewInit
   }
 
   protected getItemsFilteredByParentId(array: MenuRootItem[]): MenuRootItem[] {
-    let result: MenuRootItem[] = undefined;
-    const groups = array.filter((item) => this.appMenuService.isMenuGroup(item));
+    let result: MenuRootItem[];
+    const groups = array.filter(item => this.appMenuService.isMenuGroup(item));
 
     for (let i = 0, len = groups.length; i < len; i++) {
       const menuGroup = (groups[i] as MenuGroup);

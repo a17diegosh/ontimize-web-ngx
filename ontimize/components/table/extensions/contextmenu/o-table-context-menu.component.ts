@@ -1,19 +1,21 @@
-import { Component, forwardRef, Inject, Injector, ViewChild, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, Inject, Injector, OnInit, ViewChild } from '@angular/core';
+import { BehaviorSubject, Subscription } from 'rxjs';
 
-import { OTableComponent } from '../../o-table.component';
-import { OContextMenuComponent } from '../../../contextmenu/o-context-menu-components';
+import { OTranslateService } from '../../../../services';
 import { Util } from '../../../../utils';
-import { InputConverter } from '../../../../decorators';
+import { OContextMenuComponent } from '../../../contextmenu/o-context-menu-components';
+import { ColumnValueFilterOperator, IColumnValueFilter, OColumn, OTableComponent } from '../../table-components';
 
 export const DEFAULT_TABLE_CONTEXT_MENU_INPUTS = [
-  'contextMenu : context-menu',
-  'showInsert:insert',
-  'showEdit:edit',
-  'showViewDetail:view-detail',
-  'showCopy:copy',
-  'showSelectAll:select-all',
-  'showRefresh:refresh',
-  'showDelete:delete'
+  'contextMenu: context-menu',
+  'showInsert: insert',
+  'showEdit: edit',
+  'showViewDetail: view-detail',
+  'showCopy: copy',
+  'showSelectAll: select-all',
+  'showRefresh: refresh',
+  'showDelete: delete',
+  'showFilter: filter'
 ];
 
 @Component({
@@ -23,158 +25,224 @@ export const DEFAULT_TABLE_CONTEXT_MENU_INPUTS = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   inputs: DEFAULT_TABLE_CONTEXT_MENU_INPUTS
 })
-
 export class OTableContextMenuComponent implements OnInit {
 
-  public static INSERT_ATTR = 'insert';
-  public static GOTO_DETAIL_ATTR = 'detail';
-  public static EDIT_ATTR = 'edit';
-  public static SELECT_ALL_ATTR = 'select-all';
-  public static COPY_ATTR = 'copy';
-
-  @InputConverter()
-  showInsert: boolean = true;
-  @InputConverter()
-  showEdit: boolean = true;
-  @InputConverter()
-  showViewDetail: boolean = false;
-  @InputConverter()
-  showCopy: boolean = true;
-  @InputConverter()
-  showSelectAll: boolean = true;
-  @InputConverter()
-  showRefresh: boolean = true;
-  @InputConverter()
-  showDelete: boolean = true;
-
-
   public contextMenu: OContextMenuComponent;
-  @ViewChild('defaultContextMenu') defaultContextMenu: OContextMenuComponent;
+  public isVisibleInsert: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleEdit: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleDetail: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleCopy: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleSelectAll: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleRefresh: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleDelete: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isVisibleFilter: BehaviorSubject<boolean> = new BehaviorSubject(true);
+
+  set showInsert(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleInsert.next(value);
+  }
+  get showInsert(): boolean {
+    return this.isVisibleInsert.getValue();
+  }
+
+  set showEdit(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleEdit.next(value);
+  }
+  get showEdit(): boolean {
+    return this.isVisibleEdit.getValue();
+  }
+
+  set showViewDetail(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleDetail.next(value);
+  }
+  get showViewDetail(): boolean {
+    return this.isVisibleDetail.getValue();
+  }
+
+  set showCopy(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleCopy.next(value);
+  }
+  get showCopy(): boolean {
+    return this.isVisibleCopy.getValue();
+  }
+
+  set showSelectAll(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.table.isSelectionModeNone() ? this.isVisibleSelectAll.next(false) : this.isVisibleSelectAll.next(value);
+  }
+  get showSelectAll(): boolean {
+    return this.isVisibleSelectAll.getValue();
+  }
+
+  set showRefresh(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleRefresh.next(value);
+  }
+  get showRefresh(): boolean {
+    return this.isVisibleRefresh.getValue();
+  }
+
+  set showDelete(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleDelete.next(value);
+  }
+  get showDelete(): boolean {
+    return this.isVisibleDelete.getValue();
+  }
+
+  set showFilter(value: boolean) {
+    if (typeof value !== 'boolean') {
+      value = Util.parseBoolean(value as any);
+    }
+    this.isVisibleFilter.next(value);
+  }
+  get showFilter(): boolean {
+    return this.isVisibleFilter.getValue();
+  }
+
+  @ViewChild('defaultContextMenu')
+  protected defaultContextMenu: OContextMenuComponent;
+  protected row: any;
+  protected column: OColumn;
+  protected translateService: OTranslateService;
+  protected contextMenuSubscription: Subscription = new Subscription();
 
   constructor(
     protected injector: Injector,
     @Inject(forwardRef(() => OTableComponent)) public table: OTableComponent
-  ) { }
+  ) {
+    this.translateService = this.injector.get(OTranslateService);
+  }
 
-  ngOnInit(): void {
-    this.defaultContextMenu.onClose.subscribe(param => {
+  public ngOnInit(): void {
+    this.contextMenuSubscription.add(this.defaultContextMenu.onClose.subscribe((param: any) => {
       if (!this.table.isSelectionModeMultiple()) {
         this.table.clearSelection();
       }
-    });
+    }));
+
+    this.contextMenuSubscription.add(this.defaultContextMenu.onShow.subscribe((param: any) => {
+      this.initProperties(param);
+    }));
+
   }
 
-
-  ngAfterViewInit(): void {
-    let itemsParsed = this.defaultContextMenu.oContextMenuItems.toArray();
+  public ngAfterViewInit(): void {
+    const itemsParsed = this.defaultContextMenu.oContextMenuItems.toArray();
     if (this.contextMenu) {
-      let items = itemsParsed.concat(this.contextMenu.oContextMenuItems.toArray());
+      const items = itemsParsed.concat(this.contextMenu.oContextMenuItems.toArray());
       this.defaultContextMenu.oContextMenuItems.reset(items);
     } else {
       this.defaultContextMenu.oContextMenuItems.reset(itemsParsed);
     }
+
     this.table.registerContextMenu(this.defaultContextMenu);
   }
 
-  isVisibleDetail() {
-    let isVisible = false;
-    if (this.showViewDetail) {
-      isVisible = true;
-    }
-    return isVisible;
+  public gotoDetails(event): void {
+    const data = event.data.rowValue;
+    this.table.viewDetail(data);
   }
 
-  isVisibleEdit() {
-    let isVisible = false;
-    if (this.showEdit) {
-      isVisible = true;
-    }
-    return isVisible;
+  public edit(event): void {
+    const data = event.data.rowValue;
+    this.table.doHandleClick(data);
   }
 
-  isVisibleInsert() {
-    let isVisible = false;
-    if (this.showInsert) {
-      isVisible = true;
-    }
-    return isVisible;
-  }
-
-  isVisibleSelectAll() {
-    let isVisible = false;
-    if (this.showSelectAll && !this.table.isSelectionModeNone()) {
-      isVisible = true;
-    }
-    return isVisible;
-  }
-
-  isVisibleCopy() {
-    let isVisible = false;
-    if (this.showCopy) {
-      isVisible = true;
-    }
-    return isVisible;
-  }
-
-  isVisibleRefresh() {
-    let isVisible = false;
-    if (this.showRefresh) {
-      isVisible = true;
-    }
-    return isVisible;
-  }
-
-  isVisibleDelete() {
-    let isVisible = false;
-    if (this.showDelete) {
-      isVisible = true;
-    }
-    return isVisible;
-  }
-
-  gotoDetails(event) {
-    this.table.viewDetail(event.data);
-  }
-
-  edit(event) {
-    this.table.doHandleClick(event.data);
-  }
-
-  add() {
+  public add(): void {
     this.table.add();
   }
 
-  selectAll() {
+  public selectAll(): void {
     this.table.showAndSelectAllCheckbox();
   }
 
-  unSelectAll() {
+  public unSelectAll(): void {
     this.table.selection.clear();
   }
-  copyAll() {
+
+  public copyAll(): void {
     this.table.copyAll();
   }
 
-  copyCell(event) {
-    let cell_data = this.defaultContextMenu.origin.innerText;
+  public copyCell(event): void {
+    const cell_data = this.defaultContextMenu.origin.innerText;
     Util.copyToClipboard(cell_data);
   }
 
-  copySelection() {
+  public copySelection(): void {
     this.table.copySelection();
   }
 
-  copyRow(event) {
-    var data = JSON.stringify(this.table.dataSource.getRenderedData([event.data]));
+  public copyRow(event): void {
+    const data = JSON.stringify(this.table.dataSource.getRenderedData([event.data.rowValue]));
     Util.copyToClipboard(data);
   }
 
-  delete(event) {
+  public delete(event): void {
     this.table.remove();
   }
 
-  refresh() {
+  public refresh(): void {
     this.table.refresh();
+  }
+
+  public filterByValue(event): void {
+    this.table.showFilterByColumnIcon = true;
+    const columValueFilter: IColumnValueFilter = {
+      attr: this.column.attr,
+      operator: ColumnValueFilterOperator.IN,
+      values: [this.row[this.column.attr]]
+    };
+    this.table.dataSource.addColumnFilter(columValueFilter);
+    this.table.reloadPaginatedDataFromStart();
+  }
+
+  get labelFilterByColumn(): string {
+    return (this.column && this.column.attr) ? this.translateService.get('TABLE_CONTEXT_MENU.FILTER_BY') + ' ' + this.translateService.get(this.column.attr) : '';
+  }
+
+  public filterByColumn(event): void {
+    if (this.table.oTableMenu) {
+      this.table.showFilterByColumnIcon = true;
+      this.table.oTableMenu.columnFilterOption.active = true;
+      this.table.openColumnFilterDialog(this.column, event.event);
+    }
+  }
+
+  public checkVisibleFilter(): void {
+    let isVisible = false;
+    if (this.column) {
+      isVisible = this.showFilter && this.table.isColumnFilterable(this.column);
+    }
+    this.isVisibleFilter.next(isVisible);
+  }
+
+  protected initProperties(param: any): void {
+    const data = param.data;
+    if (data) {
+      const columnName = data.cellName;
+      this.column = this.table.getOColumn(columnName);
+      this.row = data.rowValue;
+      this.checkVisibleFilter();
+    }
   }
 
 }

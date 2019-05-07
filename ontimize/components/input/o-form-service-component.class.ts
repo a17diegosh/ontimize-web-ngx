@@ -49,7 +49,8 @@ export const DEFAULT_INPUTS_O_FORM_SERVICE_COMPONENT = [
 
 export const DEFAULT_OUTPUTS_O_FORM_SERVICE_COMPONENT = [
   ...DEFAULT_OUTPUTS_O_FORM_DATA_COMPONENT,
-  'onSetValueOnValueChange'
+  'onSetValueOnValueChange',
+  'onDataLoaded'
 ];
 
 export class OFormServiceComponent extends OFormDataComponent {
@@ -81,6 +82,7 @@ export class OFormServiceComponent extends OFormDataComponent {
 
   /* Outputs */
   public onSetValueOnValueChange: EventEmitter<Object> = new EventEmitter<Object>();
+  public onDataLoaded: EventEmitter<Object> = new EventEmitter<Object>();
 
   /* Internal variables */
   protected dataArray: any[] = [];
@@ -246,15 +248,12 @@ export class OFormServiceComponent extends OFormDataComponent {
         if (resp.code === Codes.ONTIMIZE_SUCCESSFUL_CODE) {
           self.cacheQueried = true;
           self.setDataArray(resp.data);
-        } else {
-          console.log('error');
         }
-
         //window.setTimeout(() => { this.loading = false; self.loadingSubject.next(false); self.loaderSubscription.unsubscribe(); }, 10000);
         self.loadingSubject.next(false);
         self.loaderSubscription.unsubscribe();
       }, err => {
-        console.log(err);
+        console.error(err);
         self.loadingSubject.next(false);
         self.loaderSubscription.unsubscribe();
         if (err && !Util.isObject(err)) {
@@ -280,6 +279,7 @@ export class OFormServiceComponent extends OFormDataComponent {
       console.warn('Component has received not supported service data. Supported data are Array or not empty Object');
       this.dataArray = [];
     }
+    this.onDataLoaded.emit(this.dataArray);
   }
 
   syncDataIndex(queryIfNotFound: boolean = true) {
@@ -344,7 +344,6 @@ export class OFormServiceComponent extends OFormDataComponent {
   }
 
   load(): any {
-
     var self = this;
     var zone = this.injector.get(NgZone);
     var loadObservable = new Observable(observer => {
@@ -368,6 +367,13 @@ export class OFormServiceComponent extends OFormDataComponent {
       });
     });
     return subscription;
+  }
+
+  onFormControlChange(value: any) {
+    if (this.oldValue === value) {
+      return;
+    }
+    super.onFormControlChange(value);
   }
 
 }

@@ -21,7 +21,6 @@
 
     .mat-table {
       .mat-header-row {
-        background-color: mat-color($background, status-bar, 0.9);
 
         .mat-header-cell {
           color: mat-color($foreground, text);
@@ -49,7 +48,7 @@
 
       }
 
-      .mat-footer-row {
+      .mat-footer-row.o-table-aggregate {
         font-weight: bold;
         background-color: mat-color($background, status-bar, 0.9);
       }

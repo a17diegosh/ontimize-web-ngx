@@ -1,16 +1,17 @@
-import { Component, ElementRef, forwardRef, HostBinding, Inject, Injector, NgModule, Optional, ViewChild, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormGroup } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
-import { MatDialog } from '@angular/material';
-
-import { Util } from '../../util/util';
-import { OSharedModule } from '../../shared';
-import { OFormValue } from '../form/OFormValue';
-import { InputConverter } from '../../decorators';
-import { OFormComponent } from '../form/o-form.component';
-import { OFullScreenDialogComponent } from './fullscreen/fullscreen-dialog.component';
+import { Component, ElementRef, HostBinding, Inject, Injector, NgModule, Optional, ViewChild, ViewEncapsulation, forwardRef } from '@angular/core';
 import { DEFAULT_INPUTS_O_FORM_DATA_COMPONENT, DEFAULT_OUTPUTS_O_FORM_DATA_COMPONENT, OFormDataComponent } from '../o-form-data-component.class';
+import { FormControl, FormGroup } from '@angular/forms';
+import { IFormValueOptions, OFormValue } from '../form/OFormValue';
+
+import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
+import { InputConverter } from '../../decorators';
+import { MatDialog } from '@angular/material';
+import { OFormComponent } from '../form/o-form.component';
+import { OFormControl } from '../input/o-form-control.class';
+import { OFullScreenDialogComponent } from './fullscreen/fullscreen-dialog.component';
+import { OSharedModule } from '../../shared';
+import { Util } from '../../util/util';
 
 export const DEFAULT_INPUTS_O_IMAGE = [
   ...DEFAULT_INPUTS_O_FORM_DATA_COMPONENT,
@@ -19,11 +20,14 @@ export const DEFAULT_INPUTS_O_IMAGE = [
   'emptyicon: empty-icon',
   // show-controls [yes|no true|false]: Shows or hides selection controls. Default: true.
   'showControls: show-controls',
-  //height [% | px]: Set the height of the image.
+  // height [% | px]: Set the height of the image.
   'height',
   // auto-fit [yes|no true|false]: Adjusts the image to the content or not. Default: true.
   'autoFit: auto-fit',
-  'fullScreenButton: full-screen-button'
+  'fullScreenButton: full-screen-button',
+  // accept-file-type [string]: file types allowed on the file input, separated by ';'. Default: image/*.
+  // file_extension, image/*, media_type. See https://www.w3schools.com/tags/att_input_accept.asp
+  'acceptFileType: accept-file-type'
 ];
 
 export const DEFAULT_OUTPUTS_O_IMAGE = [
@@ -37,20 +41,25 @@ export const DEFAULT_OUTPUTS_O_IMAGE = [
   styleUrls: ['./o-image.component.scss'],
   inputs: DEFAULT_INPUTS_O_IMAGE,
   outputs: DEFAULT_OUTPUTS_O_IMAGE,
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
+  host: {
+    '[class.o-image]': 'true'
+  }
 })
 export class OImageComponent extends OFormDataComponent {
 
   public static DEFAULT_INPUTS_O_IMAGE = DEFAULT_INPUTS_O_IMAGE;
   public static DEFAULT_OUTPUTS_O_IMAGE = DEFAULT_OUTPUTS_O_IMAGE;
 
-  emptyimage: string;
-  emptyicon: string;
+  public acceptFileType: string = 'image/*';
+  public emptyimage: string;
+  public emptyicon: string;
+  public height: string;
+  @InputConverter()
+  public autoFit: boolean = true;
+  public currentFileName: string = '';
   @InputConverter()
   protected showControls: boolean = true;
-  height: string;
-  @InputConverter()
-  autoFit: boolean = true;
   set fullScreenButton(val: boolean) {
     val = Util.parseBoolean(String(val));
     this._fullScreenButton = val;
@@ -62,12 +71,11 @@ export class OImageComponent extends OFormDataComponent {
 
   @ViewChild('input')
   protected fileInput: ElementRef;
-  @ViewChild('titleLabel')
-  protected titleLabel: ElementRef;
   protected _useEmptyIcon: boolean = true;
   protected _useEmptyImage: boolean = false;
   protected _domSanitizer: DomSanitizer;
   protected dialog: MatDialog;
+  public stateCtrl: FormControl;
 
   constructor(
     @Optional() @Inject(forwardRef(() => OFormComponent)) form: OFormComponent,
@@ -78,9 +86,10 @@ export class OImageComponent extends OFormDataComponent {
     this._domSanitizer = this.injector.get(DomSanitizer);
     this._defaultSQLTypeKey = 'BASE64';
     this.dialog = this.injector.get(MatDialog);
+    this.stateCtrl = new FormControl();
   }
 
-  ngOnInit() {
+  public ngOnInit(): void {
     this.initialize();
 
     if (this.emptyimage && this.emptyimage.length > 0) {
@@ -95,20 +104,20 @@ export class OImageComponent extends OFormDataComponent {
     }
   }
 
-  ngOnDestroy() {
+  public ngOnDestroy(): void {
     super.ngOnDestroy();
   }
 
-  ensureOFormValue(val: any) {
+  public ensureOFormValue(val: any): void {
     if (val instanceof OFormValue) {
-      if (val.value && val.value['bytes'] !== undefined) {
+      if (val.value && val.value.bytes !== undefined) {
         this.value = new OFormValue(val.value.bytes);
         return;
       }
       this.value = new OFormValue(val.value);
     } else if (val && !(val instanceof OFormValue)) {
-      if (val['bytes'] !== undefined) {
-        val = val['bytes'];
+      if (val.bytes !== undefined) {
+        val = val.bytes;
       } else if (val.length > 300 && val.substring(0, 4) === 'data') {
         // Removing "data:image/*;base64,"
         val = val.substring(val.indexOf('base64') + 7);
@@ -119,15 +128,22 @@ export class OImageComponent extends OFormDataComponent {
     }
   }
 
-  isEmpty(): boolean {
+  public isEmpty(): boolean {
     return !this.getValue() || this.getValue().length === 0;
   }
 
-  fileChange(input): void {
+  
+  public createFormControl(): OFormControl {
+    this._fControl = super.createFormControl()
+    this._fControl.fControlChildren = [this.stateCtrl];
+    return this._fControl;
+  }
+
+  public fileChange(input): void {
     if (input.files[0]) {
-      var reader = new FileReader();
-      var self = this;
-      reader.addEventListener('load', (event) => {
+      const reader = new FileReader();
+      const self = this;
+      reader.addEventListener('load', event => {
         let result = event.target['result'];
         if (result && result.length > 300 && result.substring(0, 4) === 'data') {
           // Removing "data:image/*;base64,"
@@ -142,29 +158,31 @@ export class OImageComponent extends OFormDataComponent {
       if (input.files[0]) {
         reader.readAsDataURL(input.files[0]);
       }
-      if (this.titleLabel) {
-        this.titleLabel.nativeElement.textContent = input.files[0]['name'];
-      }
+      // if (this.titleLabel) {
+      //   this.titleLabel.nativeElement.textContent = input.files[0].name;
+      // }
+      this.currentFileName = input.files[0].name;
+      this.stateCtrl.setValue( this.currentFileName);
     }
   }
 
-  getSrcValue() {
+  public getSrcValue(): any {
     if (this.value && this.value.value) {
       if (this.value.value instanceof Object && this.value.value.bytes) {
         let src: string = '';
         if (this.value.value.bytes.substring(0, 4) === 'data') {
-          src = 'data:image/png;base64,' + this.value.value.bytes.substring(this.value.value.bytes.indexOf('base64') + 7);
+          src = 'data:image/*;base64,' + this.value.value.bytes.substring(this.value.value.bytes.indexOf('base64') + 7);
         } else {
-          src = 'data:image/png;base64,' + this.value.value.bytes;
+          src = 'data:image/*;base64,' + this.value.value.bytes;
         }
         return this._domSanitizer.bypassSecurityTrustUrl(src);
       } else if (typeof this.value.value === 'string' &&
         this.value.value.length > 300) {
         let src: string = '';
         if (this.value.value.substring(0, 4) === 'data') {
-          src = 'data:image/png;base64,' + this.value.value.substring(this.value.value.indexOf('base64') + 7);
+          src = 'data:image/*;base64,' + this.value.value.substring(this.value.value.indexOf('base64') + 7);
         } else {
-          src = 'data:image/png;base64,' + this.value.value;
+          src = 'data:image/*;base64,' + this.value.value;
         }
         return this._domSanitizer.bypassSecurityTrustUrl(src);
       }
@@ -174,36 +192,38 @@ export class OImageComponent extends OFormDataComponent {
     }
   }
 
-  onClickBlocker(evt: Event) {
+  public onClickBlocker(evt: Event): void {
     evt.stopPropagation();
   }
 
-  onClickClearValue(e: Event): void {
-    if (!this.isReadOnly && !this.isDisabled) {
+  public onClickClearValue(e: Event): void {
+    if (!this.isReadOnly && this.enabled) {
       super.onClickClearValue(e);
       this.fileInput.nativeElement.value = '';
-      if (this.titleLabel) {
-        this.titleLabel.nativeElement.textContent = '';
-      }
+      // if (this.titleLabel) {
+      //   this.titleLabel.nativeElement.textContent = '';
+      // }
+      this.stateCtrl.reset();
+      this.currentFileName = '';
     }
     if (this._fControl) {
       this._fControl.markAsTouched();
     }
   }
 
-  hasControls(): boolean {
+  public hasControls(): boolean {
     return this.showControls;
   }
 
-  useEmptyIcon(): boolean {
+  public useEmptyIcon(): boolean {
     return this._useEmptyIcon && this.isEmpty();
   }
 
-  useEmptyImage(): boolean {
+  public useEmptyImage(): boolean {
     return this._useEmptyImage && this.isEmpty();
   }
 
-  getFormGroup(): FormGroup {
+  public getFormGroup(): FormGroup {
     let formGroup: FormGroup = super.getFormGroup();
     if (!formGroup) {
       formGroup = new FormGroup({});
@@ -213,11 +233,11 @@ export class OImageComponent extends OFormDataComponent {
   }
 
   @HostBinding('style.height')
-  get hostHeight() {
+  get hostHeight(): string {
     return this.height;
   }
 
-  openFullScreen(e?: Event): void {
+  public openFullScreen(e?: Event): void {
     this.dialog.open(OFullScreenDialogComponent, {
       width: '90%',
       height: '90%',
@@ -228,10 +248,14 @@ export class OImageComponent extends OFormDataComponent {
     });
   }
 
-  openFileSelector(e?: Event): void {
+  public openFileSelector(e?: Event): void {
     if (Util.isDefined(this.fileInput)) {
       this.fileInput.nativeElement.click();
     }
+  }
+
+  public internalFormControl(): string {
+    return this.getAttribute() + '_value';
   }
 
 }

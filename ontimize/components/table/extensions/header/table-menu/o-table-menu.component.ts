@@ -1,21 +1,14 @@
-import { Component, Inject, forwardRef, Injector, ViewEncapsulation, ViewChild, OnDestroy, ChangeDetectionStrategy, OnInit, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Inject, Injector, OnDestroy, OnInit, ViewChild, ViewEncapsulation, forwardRef } from '@angular/core';
+import { DialogService, OPermissions, OTableMenuPermissions, OTranslateService, SnackBarService } from '../../../../../services';
 import { MatDialog, MatMenu } from '@angular/material';
-import { Util } from '../../../../../utils';
-import { PermissionsUtils } from '../../../../../util/permissions';
+import { OColumn, OTableComponent } from '../../../o-table.component';
+import { OTableApplyConfigurationDialogComponent, OTableExportConfiguration, OTableExportDialogComponent, OTableLoadFilterDialogComponent, OTableStoreConfigurationDialogComponent, OTableStoreFilterDialogComponent, OTableVisibleColumnsDialogComponent } from '../../dialog/o-table-dialog-components';
+
 import { InputConverter } from '../../../../../decorators';
-import { SnackBarService, OTranslateService, DialogService, OTableMenuPermissions, OPermissions } from '../../../../../services';
-import { OTableComponent, OColumn } from '../../../o-table.component';
 import { OTableCellRendererImageComponent } from '../../../table-components';
-import {
-  OTableExportConfiguration,
-  OTableExportDialogComponent,
-  OTableVisibleColumnsDialogComponent,
-  OTableStoreFilterDialogComponent,
-  OTableLoadFilterDialogComponent,
-  OTableApplyConfigurationDialogComponent,
-  OTableStoreConfigurationDialogComponent
-} from '../../dialog/o-table-dialog-components';
 import { OTableOptionComponent } from '../table-option/o-table-option.component';
+import { PermissionsUtils } from '../../../../../util/permissions';
+import { Util } from '../../../../../utils';
 
 export const DEFAULT_INPUTS_O_TABLE_MENU = [
   // select-all-checkbox [yes|no|true|false]: show selection check boxes. Default: no.
@@ -43,8 +36,8 @@ export const DEFAULT_OUTPUTS_O_TABLE_MENU = [];
   },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-
 export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
+
   public static DEFAULT_INPUTS_O_TABLE_MENU = DEFAULT_INPUTS_O_TABLE_MENU;
   public static DEFAULT_OUTPUTS_O_TABLE_MENU = DEFAULT_OUTPUTS_O_TABLE_MENU;
 
@@ -96,7 +89,6 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.permissions = this.table.getMenuPermissions();
-
   }
 
   getRowHeight() {
@@ -265,12 +257,13 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
     exportCnfg.data = this.table.getRenderedValue();
     // get column's attr whose renderer is OTableCellRendererImageComponent
     let colsNotIncluded: string[] = tableOptions.columns.filter(c => void 0 !== c.renderer && c.renderer instanceof OTableCellRendererImageComponent).map(c => c.attr);
+    colsNotIncluded.push(OTableComponent.NAME_COLUMN_SELECT);
     colsNotIncluded.forEach(attr => exportCnfg.data.forEach(row => delete row[attr]));
     // Table columns
     exportCnfg.columns = tableOptions.visibleColumns.filter(c => colsNotIncluded.indexOf(c) === -1);
     // Table column names
     let tableColumnNames = {};
-    tableOptions.visibleColumns.filter(c => colsNotIncluded.indexOf(c) === -1).map(c => tableColumnNames[c] = this.translateService.get(c));
+    tableOptions.visibleColumns.filter(c => colsNotIncluded.indexOf(c) === -1).forEach(c => tableColumnNames[c] = this.translateService.get(c));
     exportCnfg.columnNames = tableColumnNames;
     // Table column sqlTypes
     exportCnfg.sqlTypes = this.table.getSqlTypes();
@@ -279,7 +272,8 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
     let dialogRef = this.dialog.open(OTableExportDialogComponent, {
       data: exportCnfg,
-      disableClose: true
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
 
     dialogRef.afterClosed().subscribe(result => result ? this.snackBarService.open('MESSAGES.SUCCESS_EXPORT_TABLE_DATA', { icon: 'check_circle' }) : null);
@@ -292,7 +286,8 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
         columnsData: this.table.oTableOptions.columns,
         rowHeight: this.table.rowHeight
       },
-      disableClose: true
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -321,11 +316,14 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  onStoreFilterClicked(): void {
-    let dialogRef = this.dialog.open(OTableStoreFilterDialogComponent, {
+  public onStoreFilterClicked(): void {
+    const dialogRef = this.dialog.open(OTableStoreFilterDialogComponent, {
       data: this.table.oTableStorage.getStoredFilters().map(filter => filter.name),
-      width: '30vw',
-      disableClose: true
+      width: 'calc((75em - 100%) * 1000)',
+      maxWidth: '65vw',
+      minWidth: '30vw',
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -335,19 +333,22 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  onLoadFilterClicked(): void {
-    let dialogRef = this.dialog.open(OTableLoadFilterDialogComponent, {
+  public onLoadFilterClicked(): void {
+    const dialogRef = this.dialog.open(OTableLoadFilterDialogComponent, {
       data: this.table.oTableStorage.getStoredFilters(),
-      width: '30vw',
-      disableClose: true
+      width: 'calc((75em - 100%) * 1000)',
+      maxWidth: '65vw',
+      minWidth: '30vw',
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
 
     dialogRef.componentInstance.onDelete.subscribe(filterName => this.table.oTableStorage.deleteStoredFilter(filterName));
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        let selectedFilterName: string = dialogRef.componentInstance.getSelectedFilterName();
+        const selectedFilterName: string = dialogRef.componentInstance.getSelectedFilterName();
         if (selectedFilterName) {
-          let storedFilter = this.table.oTableStorage.getStoredFilterConf(selectedFilterName);
+          const storedFilter = this.table.oTableStorage.getStoredFilterConf(selectedFilterName);
           if (storedFilter) {
             this.table.setFiltersConfiguration(storedFilter);
             this.table.reloadPaginatedDataFromStart();
@@ -366,10 +367,13 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  onStoreConfigurationClicked(): void {
-    let dialogRef = this.dialog.open(OTableStoreConfigurationDialogComponent, {
-      width: '30vw',
-      disableClose: true
+  public onStoreConfigurationClicked(): void {
+    const dialogRef = this.dialog.open(OTableStoreConfigurationDialogComponent, {
+      width: 'calc((75em - 100%) * 1000)',
+      maxWidth: '65vw',
+      minWidth: '30vw',
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
     const self = this;
     dialogRef.afterClosed().subscribe(result => {
@@ -381,11 +385,14 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  onApplyConfigurationClicked(): void {
-    let dialogRef = this.dialog.open(OTableApplyConfigurationDialogComponent, {
+  public onApplyConfigurationClicked(): void {
+    const dialogRef = this.dialog.open(OTableApplyConfigurationDialogComponent, {
       data: this.table.oTableStorage.getStoredConfigurations(),
-      width: '30vw',
-      disableClose: true
+      width: 'calc((75em - 100%) * 1000)',
+      maxWidth: '65vw',
+      minWidth: '30vw',
+      disableClose: true,
+      panelClass: ['o-dialog-class', 'o-table-dialog']
     });
     const self = this;
     dialogRef.componentInstance.onDelete.subscribe(configurationName => this.table.oTableStorage.deleteStoredConfiguration(configurationName));
@@ -393,11 +400,12 @@ export class OTableMenuComponent implements OnInit, AfterViewInit, OnDestroy {
       if (result && dialogRef.componentInstance.isDefaultConfigurationSelected()) {
         self.table.applyDefaultConfiguration();
       } else if (result) {
-        let selectedConfigurationName: string = dialogRef.componentInstance.getSelectedConfigurationName();
+        const selectedConfigurationName: string = dialogRef.componentInstance.getSelectedConfigurationName();
         if (selectedConfigurationName) {
           self.table.applyConfiguration(selectedConfigurationName);
         }
       }
     });
   }
+
 }

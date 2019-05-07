@@ -45,7 +45,6 @@ export class OTableExpandedFooter {
     const self = this;
 
     this.onContentChangeSubscription = this.table.onContentChange.subscribe((data) => {
-      self.updateMessageNotResults(data);
       self.updateHeight();
     });
 
@@ -66,7 +65,7 @@ export class OTableExpandedFooter {
       }
     });
 
-    diferentHeight = this.element.nativeElement.parentNode.clientHeight - totalHeight;
+    diferentHeight = this.element.nativeElement.parentNode.clientHeight - totalHeight - 1;
     this.renderer.setStyle(this.additionDiv, 'height', diferentHeight > 0 ? diferentHeight + 'px' : 'auto');
     this.renderer.setStyle(this.additionDiv, 'width', this.element.nativeElement.clientWidth + 'px');
   }

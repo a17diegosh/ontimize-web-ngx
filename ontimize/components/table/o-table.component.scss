@@ -11,8 +11,8 @@ $o_table_row_padding: 24px;
   height: 100%;
   max-height: 100%;
 
-  div.expandable-container {
-    overflow-y: auto;
+  &.o-table-disabled {
+    opacity: .4;
   }
 
   .o-table-container {
@@ -115,6 +115,11 @@ $o_table_row_padding: 24px;
       width: 100%;
 
       &.small {
+        .column-filter-icon,
+        .mat-sort-header-arrow {
+          margin-top: 2px;
+        }
+
         .mat-header-row,
         .mat-row {
           .mat-checkbox-inner-container {
@@ -142,6 +147,14 @@ $o_table_row_padding: 24px;
       }
 
       &.medium {
+        .column-filter-icon {
+          margin-top: 4px;
+        }
+
+        .mat-sort-header-arrow {
+          margin-top: 6px;
+        }
+
         .mat-header-row,
         .mat-row {
           .mat-cell,
@@ -164,6 +177,13 @@ $o_table_row_padding: 24px;
               height: floor($_mat-checkbox-mark-stroke-size-medim);
             }
           }
+        }
+      }
+
+      &.large {
+        .column-filter-icon,
+        .mat-sort-header-arrow {
+          margin-top: 8px;
         }
       }
 
@@ -270,6 +290,34 @@ $o_table_row_padding: 24px;
       .mat-header-cell {
         overflow: hidden;
         position: relative;
+        box-sizing: border-box;
+        padding: 0 12px;
+        vertical-align: middle;
+
+        &.resizable {
+          padding-right: 24px;
+        }
+
+        &:first-of-type,
+        &:last-of-type {
+          padding-left: 0;
+          padding-right: 0;
+        }
+
+        &:not(.o-column-image) {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        &.o-mat-cell-multiline {
+          &:not(.mat-header-cell) {
+            padding: 6px 12px;
+          }
+          overflow: initial;
+          white-space: normal;
+          text-overflow: unset;
+        }
 
         .column-filter-icon {
           cursor: pointer;
@@ -277,32 +325,29 @@ $o_table_row_padding: 24px;
           font-size: 20px;
           width: 20px;
           height: 20px;
-          margin-right: 8px;
+          margin-right: 2px;
           line-height: 1;
-          vertical-align: middle;
-          height: 100%;
         }
 
         .mat-sort-header-button {
           flex: 1;
           display: block;
+          place-content: center;
         }
 
         .mat-sort-header-arrow {
-          margin-top: auto;
-          margin-bottom: auto;
+          position: absolute;
+          right: 0;
         }
 
         .header-title-container {
           cursor: default;
         }
 
-        &.resizable .mat-sort-header-arrow,
-        .header-title-container {
-          margin-right: 14px;
+        &.resizable .mat-sort-header-arrow {
+          margin-right: 12px;
         }
 
-        &:not([o-mat-sort-header]),
         .header-title-container,
         .mat-sort-header-button {
           white-space: nowrap;
@@ -310,36 +355,31 @@ $o_table_row_padding: 24px;
           text-overflow: ellipsis;
         }
 
-        &:not([o-mat-sort-header]) {
-          &.start {
-            text-align: left;
-          }
+        &.start,
+        &.start .mat-sort-header-button {
+          text-align: left;
+        }
 
-          &.center {
-            text-align: center;
-          }
+        &.center,
+        &.center .mat-sort-header-button {
+          text-align: center;
+        }
 
-          &.end {
-            text-align: right;
+        &.center {
+          [o-mat-sort-header] {
+            .mat-sort-header-button {
+              padding-left: 12px;
+            }
           }
         }
 
-        &[o-mat-sort-header] {
-          &.start .mat-sort-header-button {
-            text-align: left;
-          }
+        &.end,
+        &.end .mat-sort-header-button {
+          text-align: right;
+        }
 
-          &.center .mat-sort-header-button {
-            text-align: center;
-          }
-
-          &.end .mat-sort-header-button {
-            text-align: right;
-          }
-
-          .mat-sort-header-button {
-            padding-left: 12px;
-          }
+        .mat-sort-header-container {
+          padding-top: 4px;
         }
 
       }
@@ -354,6 +394,15 @@ $o_table_row_padding: 24px;
         }
 
       }
+    }
+
+    .o-table-disabled-blocker {
+      bottom: 0;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 100;
     }
   }
 

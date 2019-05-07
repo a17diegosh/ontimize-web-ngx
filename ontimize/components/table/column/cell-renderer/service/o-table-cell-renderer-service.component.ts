@@ -1,4 +1,4 @@
-import { Component, Injector, OnInit, TemplateRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { DialogService, OntimizeService } from '../../../../../services';
@@ -35,6 +35,11 @@ export class OTableCellRendererServiceComponent extends OBaseTableCellRenderer i
 
   @ViewChild('templateref', { read: TemplateRef }) public templateref: TemplateRef<any>;
 
+  public rowData: any;
+  public cellValues = [];
+  public renderValue: any;
+  public responseMap = {};
+
   /* Inputs */
   protected entity: string;
   protected service: string;
@@ -51,20 +56,17 @@ export class OTableCellRendererServiceComponent extends OBaseTableCellRenderer i
   protected querySubscription: Subscription;
   protected dialogService: DialogService;
 
-  rowData: any;
-  cellValues = [];
-  renderValue: any;
-
-  responseMap = {};
+  protected editorSuscription: Subscription;
 
   constructor(protected injector: Injector) {
     super(injector);
+    this.tableColumn.type = 'service';
     this.dialogService = injector.get(DialogService);
   }
 
-  ngOnInit() {
+  public ngOnInit(): void {
     if (this.table) {
-      const oCol: OColumn = this.table.getOColumn(this.tableColumn.attr);
+      const oCol: OColumn = this.table.getOColumn(this.column);
       oCol.definition.contentAlign = oCol.definition.contentAlign ? oCol.definition.contentAlign : 'center';
     }
 
@@ -74,8 +76,23 @@ export class OTableCellRendererServiceComponent extends OBaseTableCellRenderer i
     this.configureService();
   }
 
-  getDescriptionValue(cellvalue: any, rowValue: any): String {
-    // let keyValue = rowValue[this.column];
+  public ngAfterViewInit(): void {
+    const oCol: OColumn = this.table.getOColumn(this.column);
+    if (Util.isDefined(oCol.editor)) {
+      const self = this;
+      this.editorSuscription = oCol.editor.onPostUpdateRecord.subscribe((data: any) => {
+        self.queryData(data[self.tableColumn.attr], data);
+      });
+    }
+  }
+
+  public ngOnDestroy(): void {
+    if (this.editorSuscription) {
+      this.editorSuscription.unsubscribe();
+    }
+  }
+
+  public getDescriptionValue(cellvalue: any, rowValue: any): string {
     if (cellvalue !== undefined && this.cellValues.indexOf(cellvalue) === -1) {
       this.queryData(cellvalue, rowValue);
       this.cellValues.push(cellvalue);
@@ -83,28 +100,27 @@ export class OTableCellRendererServiceComponent extends OBaseTableCellRenderer i
     return '';
   }
 
-  queryData(cellvalue, parentItem?: any) {
+  public queryData(cellvalue, parentItem?: any): void {
     const self = this;
-
     if (!this.dataService || !(this.queryMethod in this.dataService) || !this.entity) {
       console.warn('Service not properly configured! aborting query');
       return;
     }
     const filter = ServiceUtils.getFilterUsingParentKeys(parentItem, this._pKeysEquiv);
     const tableColAlias = Object.keys(this._pKeysEquiv).find(key => this._pKeysEquiv[key] === this.column);
-    if (Util.isDefined(tableColAlias) && !filter[tableColAlias]) {
-      filter[tableColAlias] = cellvalue;
+    if (Util.isDefined(tableColAlias)) {
+      if (!filter[tableColAlias]) {
+        filter[tableColAlias] = cellvalue;
+      }
     } else {
       filter[this.column] = cellvalue;
     }
     this.querySubscription = this.dataService[this.queryMethod](filter, this.colArray, this.entity).subscribe(resp => {
       if (resp.code === Codes.ONTIMIZE_SUCCESSFUL_CODE) {
         self.responseMap[cellvalue] = resp.data[0][self.valueColumn];
-      } else {
-        console.log('error');
       }
     }, err => {
-      console.log(err);
+      console.error(err);
       if (err && typeof err !== 'object') {
         this.dialogService.alert('ERROR', err);
       } else {
@@ -113,7 +129,7 @@ export class OTableCellRendererServiceComponent extends OBaseTableCellRenderer i
     });
   }
 
-  configureService() {
+  public configureService(): void {
     let loadingService: any = OntimizeService;
     if (this.serviceType) {
       loadingService = this.serviceType;

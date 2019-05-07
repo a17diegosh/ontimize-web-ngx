@@ -1,21 +1,23 @@
-import { Injector, ElementRef, OnInit, OnDestroy, QueryList, ViewChildren, AfterViewInit, HostBinding, ContentChildren, OnChanges, SimpleChange, EventEmitter } from '@angular/core';
-import { FormControl, FormGroup, Validators, ValidatorFn } from '@angular/forms';
-import { MatSuffix, MatFormFieldAppearance, FloatLabelType } from '@angular/material';
-import { Subscription } from 'rxjs';
-import { InputConverter, BooleanConverter } from '../decorators';
-import { SQLTypes, Util, Codes } from '../utils';
-import { PermissionsUtils } from '../util/permissions';
-import { OBaseComponent, IComponent } from './o-component.class';
-import { OFormComponent } from './form/o-form.component';
-import { OFormValue, IFormValueOptions } from './form/OFormValue';
-import { OValidatorComponent } from './input/validation/o-validator.component';
-import { OPermissions, PermissionsService } from '../services';
+import { AfterViewInit, ContentChildren, ElementRef, EventEmitter, HostBinding, Injector, OnChanges, OnDestroy, OnInit, QueryList, SimpleChange, ViewChildren } from '@angular/core';
+import { BooleanConverter, InputConverter } from '../decorators';
+import { Codes, SQLTypes, Util } from '../utils';
+import { FloatLabelType, MatFormFieldAppearance, MatSuffix } from '@angular/material';
+import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
+import { IComponent, OBaseComponent } from './o-component.class';
+import { IFormValueOptions, OFormValue } from './form/OFormValue';
+import { OInputsOptions, O_INPUTS_OPTIONS } from '../config/app-config';
 import { OMatErrorComponent, OMatErrorOptions, O_MAT_ERROR_OPTIONS } from '../shared/material/o-mat-error/o-mat-error';
-import { O_INPUTS_OPTIONS, OInputsOptions } from '../config/app-config';
+import { OPermissions, PermissionsService } from '../services';
+
+import { OFormComponent } from './form/o-form.component';
+import { OFormControl } from './input/o-form-control.class';
+import { OValidatorComponent } from './input/validation/o-validator.component';
+import { PermissionsUtils } from '../util/permissions';
+import { Subscription } from 'rxjs';
 
 export interface IMultipleSelection extends IComponent {
-  getSelectedItems(): Array<any>;
-  setSelectedItems(values: Array<any>);
+  getSelectedItems(): any[];
+  setSelectedItems(values: any[]): void;
 }
 
 export interface IFormDataTypeComponent extends IComponent {
@@ -29,15 +31,15 @@ export interface IFormControlComponent extends IComponent {
 }
 
 export interface IFormDataComponent extends IFormControlComponent {
-  data(value: any);
-  isAutomaticBinding(): boolean;
-  isAutomaticRegistering(): boolean;
-  setValue(val: any, options?: IFormValueOptions);
-  clearValue(options?: IFormValueOptions);
-  getValue(): any;
-
   onChange: EventEmitter<Object>;
   onValueChange: EventEmitter<OValueChangeEvent>;
+
+  data(value: any): void;
+  isAutomaticBinding(): boolean;
+  isAutomaticRegistering(): boolean;
+  setValue(val: any, options?: IFormValueOptions): void;
+  clearValue(options?: IFormValueOptions): void;
+  getValue(): any;
 }
 
 export interface IErrorData {
@@ -55,11 +57,11 @@ export class OValueChangeEvent {
     public oldValue: any,
     public target: any) { }
 
-  isUserChange(): boolean {
+  public isUserChange(): boolean {
     return this.type === OValueChangeEvent.USER_CHANGE;
   }
 
-  isProgrammaticChange(): boolean {
+  public isProgrammaticChange(): boolean {
     return this.type === OValueChangeEvent.PROGRAMMATIC_CHANGE;
   }
 }
@@ -76,7 +78,7 @@ export const DEFAULT_INPUTS_O_FORM_DATA_COMPONENT = [
   'data',
   'autoBinding: automatic-binding',
   'autoRegistering: automatic-registering',
-  'oenabled: enabled',
+  'enabled',
   'orequired: required',
   // sqltype[string]: Data type according to Java standard. See SQLType ngClass. Default: 'OTHER'
   'sqlType: sql-type',
@@ -84,7 +86,9 @@ export const DEFAULT_INPUTS_O_FORM_DATA_COMPONENT = [
   'readOnly: read-only',
   'clearButton: clear-button',
   'angularValidatorsFn: validators',
-  'appearance'
+  'appearance',
+  'hideRequiredMarker:hide-required-marker',
+  'labelVisible:label-visible'
 ];
 
 export const DEFAULT_OUTPUTS_O_FORM_DATA_COMPONENT = [
@@ -98,26 +102,28 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
   OnInit, AfterViewInit, OnDestroy, OnChanges {
 
   /* Inputs */
-  protected _floatLabel: FloatLabelType;
-  sqlType: string;
+  public sqlType: string;
   @InputConverter()
-  autoBinding: boolean = true;
+  public autoBinding: boolean = true;
   @InputConverter()
-  autoRegistering: boolean = true;
-  width: string;
+  public autoRegistering: boolean = true;
+  public width: string;
   @InputConverter()
-  clearButton: boolean = false;
-  angularValidatorsFn: ValidatorFn[] = [];
-  protected _appearance: MatFormFieldAppearance;
+  public clearButton: boolean = false;
+  public angularValidatorsFn: ValidatorFn[] = [];
+  @InputConverter()
+  public hideRequiredMarker: boolean = false;
+  @InputConverter()
+  public labelVisible: boolean = true;
 
   /* Outputs */
-  onChange: EventEmitter<Object> = new EventEmitter<Object>();
-  onValueChange: EventEmitter<OValueChangeEvent> = new EventEmitter<OValueChangeEvent>();
-  onFocus: EventEmitter<Object> = new EventEmitter<Object>();
-  onBlur: EventEmitter<Object> = new EventEmitter<Object>();
+  public onChange: EventEmitter<Object> = new EventEmitter<Object>();
+  public onValueChange: EventEmitter<OValueChangeEvent> = new EventEmitter<OValueChangeEvent>();
+  public onFocus: EventEmitter<Object> = new EventEmitter<Object>();
+  public onBlur: EventEmitter<Object> = new EventEmitter<Object>();
 
   @HostBinding('style.width')
-  get hostWidth() {
+  get hostWidth(): string {
     return this.width;
   }
 
@@ -126,17 +132,19 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
   protected defaultValue: any = void 0;
   protected _SQLType: number = SQLTypes.OTHER;
   protected _defaultSQLTypeKey: string = 'OTHER';
-  protected _fControl: FormControl;
+  protected _fControl: OFormControl;
   protected _fControlSubscription: Subscription;
   protected _fGroup: FormGroup;
   protected elRef: ElementRef;
   protected form: OFormComponent;
   protected oldValue: any;
 
+  protected _floatLabel: FloatLabelType;
+  protected _appearance: MatFormFieldAppearance;
+
   protected matSuffixSubscription: Subscription;
   @ViewChildren(MatSuffix)
   protected _matSuffixList: QueryList<MatSuffix>;
-  matSuffixClass;
 
   protected errorsData: IErrorData[] = [];
   protected validatorsSubscription: Subscription;
@@ -168,11 +176,11 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  ngOnInit() {
+  public ngOnInit(): void {
     this.initialize();
   }
 
-  ngAfterViewInit(): void {
+  public ngAfterViewInit(): void {
     const self = this;
     if (this._matSuffixList) {
       this.setSuffixClass(this._matSuffixList.length);
@@ -189,7 +197,7 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
         this.updateValidators();
       }
     }
-    if (this.isDisabled) {
+    if (!this.enabled) {
       this.mutationObserver = PermissionsUtils.registerDisabledChangesInDom(this.getMutationObserverTarget(), {
         callback: this.disableFormControl.bind(this)
       });
@@ -202,34 +210,33 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
 
     Util.parseOInputsOptions(this.elRef, this.oInputsOptions);
-
   }
 
-  ngOnDestroy() {
+  public ngOnDestroy(): void {
     this.destroy();
   }
 
-  ngOnChanges(changes: { [propName: string]: SimpleChange }) {
+  public ngOnChanges(changes: { [propName: string]: SimpleChange }): void {
     if (Util.isDefined(changes['angularValidatorsFn'])) {
       this.updateValidators();
     }
   }
 
-  hasEnabledPermission(): boolean {
+  public hasEnabledPermission(): boolean {
     return this.permissions ? this.permissions.enabled : true;
   }
 
-  hasVisiblePermission(): boolean {
+  public hasVisiblePermission(): boolean {
     return this.permissions ? this.permissions.visible : true;
   }
 
-  getFormGroup(): FormGroup {
+  public getFormGroup(): FormGroup {
     if (this._fGroup) {
       return this._fGroup;
     }
     let formGroup = this.form ? this.form.formGroup : undefined;
     if ((!this.hasEnabledPermission() || !this.hasVisiblePermission()) && !this._fGroup) {
-      let group = {};
+      const group = {};
       group[this.oattr] = this._fControl;
       this._fGroup = new FormGroup(group);
       formGroup = this._fGroup;
@@ -237,23 +244,23 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     return formGroup;
   }
 
-  getFormControl(): FormControl {
+  public getFormControl(): FormControl {
     return this._fControl;
   }
 
-  hasError(error: string): boolean {
+  public hasError(error: string): boolean {
     return !this.isReadOnly && this._fControl && this._fControl.touched && this._fControl.hasError(error);
   }
 
-  getErrorValue(error: string, prop: string): string {
+  public getErrorValue(error: string, prop: string): string {
     return this._fControl && this._fControl.hasError(error) ? this._fControl.getError(error)[prop] || '' : '';
   }
 
-  getActiveOErrors(): IErrorData[] {
+  public getActiveOErrors(): IErrorData[] {
     return this.errorsData.filter((item: IErrorData) => this.hasError(item.name));
   }
 
-  initialize() {
+  public initialize(): void {
     super.initialize();
 
     // ensuring formControl creation
@@ -266,72 +273,12 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
         this.registerFormListeners();
         this.isReadOnly = !(this.form.isInUpdateMode() || this.form.isInInsertMode() || this.form.isEditableDetail());
       } else {
-        this.isReadOnly = this._disabled;
+        this.isReadOnly = !this.enabled;
       }
     }
   }
 
-  protected parsePermissions() {
-    // if oattr in form, it can have permissions
-    if (!this.form || !Util.isDefined(this.form.oattr)) {
-      return;
-    }
-    const permissions: OPermissions = this.form.getFormComponentPermissions(this.oattr);
-    if (!Util.isDefined(permissions)) {
-      return;
-    }
-    if (permissions.visible === false) {
-      /* hide input per permissions */
-      this.elRef.nativeElement.remove();
-      this.destroy();
-    } else if (permissions.enabled === false) {
-      /* disable input per permissions */
-      this.disabled = true;
-      if (this.form) {
-        this.form.registerFormComponent(this);
-      }
-    }
-    this.permissions = permissions;
-  }
-
-  protected getMutationObserverTarget(): any {
-    let result;
-    try {
-      result = this.elementRef.nativeElement.getElementsByTagName('input').item(0);
-    } catch (error) {
-      //
-    }
-    return result;
-  }
-
-  /**
-   * Do not allow the disabled attribute to change by code or by inspector
-   * */
-  private disableFormControl() {
-    const control = this.getFormControl();
-    control.disable({
-      onlySelf: true,
-      emitEvent: false
-    });
-  }
-
-  protected setSuffixClass(count: number) {
-    const iconFieldEl = this.elRef.nativeElement.getElementsByClassName('icon-field');
-    if (iconFieldEl.length === 1) {
-      const classList = [].slice.call(iconFieldEl[0].classList);
-      classList.forEach(className => {
-        if (className.startsWith('icon-field-')) {
-          iconFieldEl[0].classList.remove(className);
-        }
-      });
-      if (count > 0) {
-        let matSuffixClass = `icon-field-${count}-suffix`;
-        iconFieldEl[0].classList.add(matSuffixClass);
-      }
-    }
-  }
-
-  destroy() {
+  public destroy(): void {
     this.unregisterFormListeners();
     if (this.matSuffixSubscription) {
       this.matSuffixSubscription.unsubscribe();
@@ -347,7 +294,7 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  registerFormListeners() {
+  public registerFormListeners(): void {
     if (this.form) {
       this.form.registerFormComponent(this);
       this.form.registerFormControlComponent(this);
@@ -355,7 +302,7 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  unregisterFormListeners() {
+  public unregisterFormListeners(): void {
     if (this.form) {
       this.form.unregisterFormComponent(this);
       this.form.unregisterFormControlComponent(this);
@@ -367,7 +314,7 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     this.setData(value);
   }
 
-  setData(newValue: any) {
+  public setData(newValue: any): void {
     // emit OValueChangeEvent.PROGRAMMATIC_CHANGE when assign value to data
     // this method skips the following permissions checking because the form is
     // setting its query result using it
@@ -376,15 +323,15 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     this.emitOnValueChange(OValueChangeEvent.PROGRAMMATIC_CHANGE, newValue, previousValue);
   }
 
-  isAutomaticBinding(): boolean {
+  public isAutomaticBinding(): boolean {
     return this.autoBinding;
   }
 
-  isAutomaticRegistering(): boolean {
+  public isAutomaticRegistering(): boolean {
     return this.autoRegistering;
   }
 
-  getValue(): any {
+  public getValue(): any {
     if (this.value instanceof OFormValue) {
       if (this.value.value !== undefined) {
         return this.value.value;
@@ -393,14 +340,14 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     return this.defaultValue;
   }
 
-  setValue(val: any, options?: IFormValueOptions) {
+  public setValue(val: any, options?: IFormValueOptions, setDirty: boolean = false): void {
     if (!PermissionsUtils.checkEnabledPermission(this.permissions)) {
       return;
     }
     if (this.oldValue !== val) {
       const newValue = val;
-      this.setFormValue(val, options);
-      let changeType: number = (options && options.hasOwnProperty('changeType')) ? options.changeType : OValueChangeEvent.PROGRAMMATIC_CHANGE;
+      this.setFormValue(val, options, setDirty);
+      const changeType: number = (options && options.hasOwnProperty('changeType')) ? options.changeType : OValueChangeEvent.PROGRAMMATIC_CHANGE;
       this.emitOnValueChange(changeType, newValue, this.oldValue);
       this.oldValue = val;
     }
@@ -409,35 +356,21 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
   /**
    * Clears the component value.
    */
-  clearValue(options?: IFormValueOptions) {
+  public clearValue(options?: IFormValueOptions, setDirty: boolean = false): void {
     if (!PermissionsUtils.checkEnabledPermission(this.permissions)) {
       return;
     }
-    this.setValue(void 0, options);
+    this.setValue(void 0, options, setDirty);
   }
 
-  onClickClearValue(event: Event): void {
+  public onClickClearValue(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
-    this.clearValue({ changeType: OValueChangeEvent.USER_CHANGE });
+    this.clearValue({ changeType: OValueChangeEvent.USER_CHANGE }, true);
   }
 
-  protected setFormValue(val: any, options?: IFormValueOptions, setDirty: boolean = false) {
-    this.ensureOFormValue(val);
-    if (this._fControl) {
-      this._fControl.setValue(this.value.value, options);
-      if (setDirty) {
-        this._fControl.markAsDirty();
-      }
-      if (this._fControl.invalid && !this.form.isInInsertMode()) {
-        this._fControl.markAsTouched();
-      }
-    }
-    this.oldValue = this.value.value;
-  }
-
-  /*This method is called in output change event, not emit event onValueChange when oldvalue is same than newvalue*/
-  onChangeEvent(arg: any) {
+  /* This method is called in output change event, not emit event onValueChange when oldvalue is same than newvalue*/
+  public onChangeEvent(arg: any): void {
     const value = this.getValue();
     if (this.oldValue !== value) {
       const previousValue = this.oldValue;
@@ -446,16 +379,11 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  protected emitOnValueChange(type, newValue, oldValue) {
-    let event = new OValueChangeEvent(type, newValue, oldValue, this);
-    this.onValueChange.emit(event);
-  }
-
   get showClearButton(): boolean {
-    return this.clearButton && !this.isReadOnly && !this.isDisabled && this.getValue();
+    return this.clearButton && !this.isReadOnly && this.enabled && this.getValue();
   }
 
-  onFormControlChange(value: any) {
+  public onFormControlChange(value: any): void {
     // equivalente al innerOnChange
     if (!this.value) {
       this.value = new OFormValue();
@@ -464,11 +392,11 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     this.onChange.emit(value);
   }
 
-  ensureOFormValue(arg: any) {
+  public ensureOFormValue(arg: any): void {
     if (arg instanceof OFormValue) {
       this.value = arg;
     } else if (Util.isDefined(arg) && !(arg instanceof OFormValue)) {
-      let val: OFormValue = this.value || new OFormValue();
+      const val: OFormValue = this.value || new OFormValue();
       val.value = arg;
       this.value = val;
     } else {
@@ -476,32 +404,30 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  getControl(): FormControl {
+  /**
+   * This method should overwritten in the child component when it have addicional form control or other oFormDataComponent
+   */
+  public createFormControl(cfg?, validators?): OFormControl {
+    return new OFormControl(cfg, {
+      validators: validators
+    }, null);
+  }
+
+  public getControl(): FormControl {
     if (!this._fControl) {
       const validators: ValidatorFn[] = this.resolveValidators();
       const cfg = {
         value: this.value ? this.value.value : undefined,
-        disabled: this.isDisabled
+        disabled: !this.enabled
       };
-      this._fControl = new FormControl(cfg, {
-        validators: validators
-      });
+      this._fControl = this.createFormControl(cfg, validators);
       this.registerOnFormControlChange();
     }
     return this._fControl;
   }
 
-  protected registerOnFormControlChange() {
-    const self = this;
-    if (this._fControl) {
-      this._fControlSubscription = this._fControl.valueChanges.subscribe(value => {
-        self.onFormControlChange(value);
-      });
-    }
-  }
-
-  resolveValidators(): ValidatorFn[] {
-    let validators: ValidatorFn[] = [];
+  public resolveValidators(): ValidatorFn[] {
+    const validators: ValidatorFn[] = [];
     this.angularValidatorsFn.forEach((fn: ValidatorFn) => {
       validators.push(fn);
     });
@@ -511,20 +437,20 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     return validators;
   }
 
-  getSQLType(): number {
-    let sqlt = this.sqlType && this.sqlType.length > 0 ? this.sqlType : this._defaultSQLTypeKey;
+  public getSQLType(): number {
+    const sqlt = this.sqlType && this.sqlType.length > 0 ? this.sqlType : this._defaultSQLTypeKey;
     this._SQLType = SQLTypes.getSQLTypeValue(sqlt);
     return this._SQLType;
   }
 
-  get isValid() {
+  get isValid(): boolean {
     if (this._fControl) {
       return this._fControl.valid;
     }
     return false;
   }
 
-  isEmpty(): boolean {
+  public isEmpty(): boolean {
     if (this.value instanceof OFormValue) {
       if (this.value.value !== undefined) {
         return false;
@@ -533,16 +459,13 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     return true;
   }
 
-  set disabled(value: boolean) {
-    if (!PermissionsUtils.checkEnabledPermission(this.permissions)) {
-      return;
-    }
+  public setEnabled(value: boolean): void {
+    super.setEnabled(value);
     if (this.hasVisiblePermission()) {
-      this._disabled = value;
       if (this._fControl && value) {
-        this._fControl.disable();
-      } else if (this._fControl) {
         this._fControl.enable();
+      } else if (this._fControl) {
+        this._fControl.disable();
       }
     }
   }
@@ -553,25 +476,6 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
 
   get hasCustomWidth(): boolean {
     return this.width !== undefined;
-  }
-
-  protected updateValidators() {
-    if (!this._fControl) {
-      return;
-    }
-    const self = this;
-    this._fControl.clearValidators();
-    this.errorsData = [];
-    let validators = this.resolveValidators();
-    this.validatorChildren.forEach((oValidator: OValidatorComponent) => {
-      let validatorFunction: ValidatorFn = oValidator.getValidatorFn();
-      if (validatorFunction) {
-        validators.push(validatorFunction);
-      }
-      let errorsData: IErrorData[] = oValidator.getErrorsData();
-      self.errorsData.push(...errorsData);
-    });
-    this._fControl.setValidators(validators);
   }
 
   get orequired(): boolean {
@@ -586,14 +490,14 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     }
   }
 
-  innerOnFocus(event: any) {
-    if (!this.isReadOnly && !this.isDisabled) {
+  public innerOnFocus(event: any): void {
+    if (!this.isReadOnly && this.enabled) {
       this.onFocus.emit(event);
     }
   }
 
-  innerOnBlur(event: any) {
-    if (!this.isReadOnly && !this.isDisabled) {
+  public innerOnBlur(event: any): void {
+    if (!this.isReadOnly && this.enabled) {
       this.onBlur.emit(event);
     }
   }
@@ -611,6 +515,9 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
   }
 
   get floatLabel(): FloatLabelType {
+    if(!this.labelVisible) {
+      this.floatLabel = 'never';
+    }
     return this._floatLabel;
   }
 
@@ -622,7 +529,56 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
     this._floatLabel = value;
   }
 
-  protected addOntimizeCustomAppearanceClass() {
+  protected registerOnFormControlChange(): void {
+    const self = this;
+    if (this._fControl) {
+      this._fControlSubscription = this._fControl.valueChanges.subscribe(value => {
+        self.onFormControlChange(value);
+      });
+    }
+  }
+
+  protected emitOnValueChange(type, newValue, oldValue): void {
+    const event = new OValueChangeEvent(type, newValue, oldValue, this);
+    this.onValueChange.emit(event);
+  }
+
+  protected setFormValue(val: any, options?: IFormValueOptions, setDirty: boolean = false): void {
+    this.ensureOFormValue(val);
+    if (this._fControl) {
+      this._fControl.setValue(this.value.value, options);
+      if (setDirty) {
+        this._fControl.markAsDirty();
+      }
+      if (this._fControl.invalid && !this.form.isInInsertMode()) {
+        this._fControl.markAsTouched();
+      }
+    }
+    this.oldValue = this.value.value;
+  }
+
+  protected updateValidators(): void {
+    if (!this._fControl) {
+      return;
+    }
+    const self = this;
+    this._fControl.clearValidators();
+    this.errorsData = [];
+    const validators = this.resolveValidators();
+    if (this.validatorChildren) {
+      this.validatorChildren.forEach((oValidator: OValidatorComponent) => {
+        const validatorFunction: ValidatorFn = oValidator.getValidatorFn();
+        if (validatorFunction) {
+          validators.push(validatorFunction);
+        }
+        const errorsData: IErrorData[] = oValidator.getErrorsData();
+        self.errorsData.push(...errorsData);
+      });
+    }
+    this._fControl.setValidators(validators);
+  }
+
+  protected addOntimizeCustomAppearanceClass(): void {
     try {
       if (this.elRef) {
         const matFormFieldEl = this.elRef.nativeElement.getElementsByTagName('mat-form-field');
@@ -654,6 +610,66 @@ export class OFormDataComponent extends OBaseComponent implements IFormDataCompo
       return result;
     }
     return super.getTooltipText();
+  }
+
+  protected parsePermissions(): void {
+    // if oattr in form, it can have permissions
+    if (!this.form || !Util.isDefined(this.form.oattr)) {
+      return;
+    }
+    const permissions: OPermissions = this.form.getFormComponentPermissions(this.oattr);
+    if (!Util.isDefined(permissions)) {
+      return;
+    }
+    if (permissions.visible === false) {
+      /* hide input per permissions */
+      this.elRef.nativeElement.remove();
+      this.destroy();
+    } else if (permissions.enabled === false) {
+      /* disable input per permissions */
+      this.enabled = false;
+      if (this.form) {
+        this.form.registerFormComponent(this);
+      }
+    }
+    this.permissions = permissions;
+  }
+
+  protected getMutationObserverTarget(): any {
+    let result;
+    try {
+      result = this.elementRef.nativeElement.getElementsByTagName('input').item(0);
+    } catch (error) {
+      //
+    }
+    return result;
+  }
+
+  protected setSuffixClass(count: number): void {
+    const iconFieldEl = this.elRef.nativeElement.getElementsByClassName('icon-field');
+    if (iconFieldEl.length === 1) {
+      const classList = [].slice.call(iconFieldEl[0].classList);
+      classList.forEach(className => {
+        if (className.startsWith('icon-field-')) {
+          iconFieldEl[0].classList.remove(className);
+        }
+      });
+      if (count > 0) {
+        const matSuffixClass = `icon-field-${count}-suffix`;
+        iconFieldEl[0].classList.add(matSuffixClass);
+      }
+    }
+  }
+
+  /**
+   * Do not allow the disabled attribute to change by code or by inspector
+   */
+  private disableFormControl(): void {
+    const control = this.getFormControl();
+    control.disable({
+      onlySelf: true,
+      emitEvent: false
+    });
   }
 
 }

@@ -1,5 +1,6 @@
-import { AfterViewInit, Component, ElementRef, forwardRef, Inject, Injector, OnInit, OnChanges, Optional, NgModule, SimpleChange, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AfterViewInit, Component, ElementRef, EventEmitter, forwardRef, Inject, Injector, NgModule, OnChanges, OnInit, Optional, SimpleChange, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog, MatDialogConfig, MatDialogRef, MatInput } from '@angular/material';
 
 import { InputConverter } from '../../../decorators';
@@ -7,9 +8,11 @@ import { OntimizeService } from '../../../services';
 import { dataServiceFactory } from '../../../services/data-service.provider';
 import { OSharedModule } from '../../../shared';
 import { ODialogModule } from '../../dialog/o-dialog.component';
+import { IFormValueOptions } from '../../form/form-components';
+import { OFormComponent } from '../../form/o-form.component';
 import { OSearchInputModule } from '../../input/search-input/o-search-input.component';
 import { OValueChangeEvent } from '../../o-form-data-component.class';
-import { OFormComponent } from '../../form/o-form.component';
+import { OFormControl } from '../o-form-control.class';
 import { OFormServiceComponent } from '../o-form-service-component.class';
 import { OListPickerDialogComponent } from './o-list-picker-dialog.component';
 
@@ -23,7 +26,9 @@ export const DEFAULT_INPUTS_O_LIST_PICKER = [
 ];
 
 export const DEFAULT_OUTPUTS_O_LIST_PICKER = [
-  ...OFormServiceComponent.DEFAULT_OUTPUTS_O_FORM_SERVICE_COMPONENT
+  ...OFormServiceComponent.DEFAULT_OUTPUTS_O_FORM_SERVICE_COMPONENT,
+  'onDialogAccept',
+  'onDialogCancel'
 ];
 
 @Component({
@@ -43,15 +48,22 @@ export class OListPickerComponent extends OFormServiceComponent implements After
   public static DEFAULT_INPUTS_O_LIST_PICKER = DEFAULT_INPUTS_O_LIST_PICKER;
   public static DEFAULT_OUTPUTS_O_LIST_PICKER = DEFAULT_OUTPUTS_O_LIST_PICKER;
 
+  /* Outputs */
+  public onDialogAccept: EventEmitter<any> = new EventEmitter();
+  public onDialogCancel: EventEmitter<any> = new EventEmitter();
+  /* End outputs */
+
+  public stateCtrl: FormControl;
+
   /* Inputs */
+  @InputConverter()
+  public textInputEnabled: boolean = true;
   @InputConverter()
   protected filter: boolean = true;
   protected dialogWidth: string;
   protected dialogHeight: string = '55%';
   @InputConverter()
   protected queryRows: number;
-  @InputConverter()
-  textInputEnabled: boolean = true;
   /* End inputs */
 
   protected matDialog: MatDialog;
@@ -71,13 +83,14 @@ export class OListPickerComponent extends OFormServiceComponent implements After
     injector: Injector) {
     super(form, elRef, injector);
     this.matDialog = this.injector.get(MatDialog);
+    this.stateCtrl = new FormControl();
   }
 
-  ngOnInit(): any {
+  public ngOnInit(): void {
     this.initialize();
   }
 
-  ngOnChanges(changes: { [propName: string]: SimpleChange }) {
+  public ngOnChanges(changes: { [propName: string]: SimpleChange }): void {
     super.ngOnChanges(changes);
     if (typeof (changes['staticData']) !== 'undefined') {
       this.cacheQueried = true;
@@ -85,13 +98,24 @@ export class OListPickerComponent extends OFormServiceComponent implements After
     }
   }
 
-  ensureOFormValue(value: any) {
+  public createFormControl(): OFormControl {
+    this._fControl = super.createFormControl();
+    this._fControl.fControlChildren = [this.stateCtrl];
+    return this._fControl;
+  }
+
+  public ensureOFormValue(value: any): void {
     super.ensureOFormValue(value);
     // This call make the component querying its data multiple times, but getting description value is needed
     this.syncDataIndex(false);
   }
 
-  ngAfterViewInit(): void {
+  public setEnabled(value: boolean): void {
+    super.setEnabled(value);
+    value ? this.stateCtrl.enable() : this.stateCtrl.disable();
+  }
+
+  public ngAfterViewInit(): void {
     super.ngAfterViewInit();
     if (this.queryOnInit) {
       this.queryData();
@@ -101,7 +125,7 @@ export class OListPickerComponent extends OFormServiceComponent implements After
     }
   }
 
-  getDescriptionValue() {
+  public getDescriptionValue(): string {
     let descTxt = '';
     if (this.descriptionColArray && this._currentIndex !== undefined) {
       const self = this;
@@ -118,92 +142,51 @@ export class OListPickerComponent extends OFormServiceComponent implements After
     return descTxt;
   }
 
-  onClickClear(e: Event): void {
+  public onClickClear(e: Event): void {
     e.preventDefault();
     e.stopPropagation();
-    if (!this.isReadOnly && !this.isDisabled) {
+    if (!this.isReadOnly && this.enabled) {
       clearTimeout(this.blurTimer);
       this.blurPrevent = true;
       this.setValue(undefined);
     }
   }
 
-  onClickInput(e: Event): void {
+  public onClickInput(e: Event): void {
     if (!this.textInputEnabled) {
       this.onClickListpicker(e);
     }
   }
 
-  onClickListpicker(e: Event): void {
+  public onClickListpicker(e: Event): void {
     e.preventDefault();
     e.stopPropagation();
-    if (!this.isReadOnly && !this.isDisabled) {
+    if (!this.isReadOnly && this.enabled) {
       clearTimeout(this.blurTimer);
       this.openDialog();
     }
   }
 
-  protected openDialog() {
-    let cfg: MatDialogConfig = {
-      role: 'dialog',
-      disableClose: false,
-      panelClass: 'cdk-overlay-list-picker',
-      data: {
-        data: this.getDialogDataArray(this.dataArray),
-        filter: this.filter,
-        searchVal: this.visibleInputValue,
-        visibleColumns: this.visibleColArray,
-        queryRows: this.queryRows
-      }
-    };
-    if (this.dialogWidth !== undefined) {
-      cfg.width = this.dialogWidth;
-    }
-    if (this.dialogHeight !== undefined) {
-      cfg.height = this.dialogHeight;
-    }
-    this.dialogRef = this.matDialog.open(OListPickerDialogComponent, cfg);
-
-    this.dialogRef.afterClosed().subscribe(result => {
-      this.onDialogClose(result);
-    });
-  }
-
-  protected getDialogDataArray(dataArray: Array<any>): Array<any> {
-    let result: Array<any> = [];
-    const self = this;
-    dataArray.forEach((item, itemIndex) => {
-      let element = '';
-      self.visibleColArray.forEach((visibleCol, index) => {
-        element += item[visibleCol];
-        if ((index + 1) < self.visibleColArray.length) {
-          element += self.separator;
-        }
-      });
-      let newItem = Object.assign({}, item);
-      newItem['_parsedVisibleColumnText'] = element;
-      newItem['_parsedIndex'] = itemIndex;
-      result.push(newItem);
-    });
-    return result;
-  }
-
-  onDialogClose(evt: any) {
+  public onDialogClose(evt: any): void {
     this.dialogRef = null;
     this.visibleInputValue = undefined;
     if (evt instanceof Object && typeof evt[this.valueColumn] !== 'undefined') {
-      var self = this;
+      const self = this;
       window.setTimeout(() => {
         self.setValue(evt[self.valueColumn], { changeType: OValueChangeEvent.USER_CHANGE });
         if (self._fControl) {
           self._fControl.markAsTouched();
+          self._fControl.markAsDirty();
         }
+        self.onDialogAccept.emit();
       }, 0);
+    } else {
+      this.onDialogCancel.emit();
     }
   }
 
-  innerOnBlur(evt: any) {
-    if (!this.isReadOnly && !this.isDisabled) {
+  public innerOnBlur(evt: any): void {
+    if (!this.isReadOnly && this.enabled) {
       const self = this;
       this.blurTimer = setTimeout(() => {
         if (!self.blurPrevent) {
@@ -224,16 +207,68 @@ export class OListPickerComponent extends OFormServiceComponent implements After
     }
   }
 
-  onVisibleInputChange(event: any) {
+  public onVisibleInputChange(event: any): void {
     this.visibleInputValue = event.target.value;
   }
 
-  onKeydownEnter(val: any) {
+  public onKeydownEnter(val: any): void {
     clearTimeout(this.blurTimer);
     this.blurPrevent = true;
     this.visibleInputValue = val;
     this.openDialog();
   }
+
+  protected setFormValue(val: any, options?: IFormValueOptions, setDirty: boolean = false): void {
+    super.setFormValue(val, options, setDirty);
+    this.stateCtrl.setValue(this.getDescriptionValue());
+  }
+
+  protected openDialog(): void {
+    const cfg: MatDialogConfig = {
+      role: 'dialog',
+      disableClose: false,
+      panelClass: ['cdk-overlay-list-picker', 'o-dialog-class'],
+      data: {
+        data: this.getDialogDataArray(this.dataArray),
+        filter: this.filter,
+        searchVal: this.visibleInputValue,
+        menuColumns: this.visibleColumns, // TODO: improve this, this is passed to `o-search-input` of the dialog
+        visibleColumns: this.visibleColArray,
+        queryRows: this.queryRows
+      }
+    };
+    if (this.dialogWidth !== undefined) {
+      cfg.width = this.dialogWidth;
+    }
+    if (this.dialogHeight !== undefined) {
+      cfg.height = this.dialogHeight;
+    }
+    this.dialogRef = this.matDialog.open(OListPickerDialogComponent, cfg);
+
+    this.dialogRef.afterClosed().subscribe(result => {
+      this.onDialogClose(result);
+    });
+  }
+
+  protected getDialogDataArray(dataArray: any[]): any[] {
+    const result: any[] = [];
+    const self = this;
+    dataArray.forEach((item, itemIndex) => {
+      let element = '';
+      self.visibleColArray.forEach((visibleCol, index) => {
+        element += item[visibleCol];
+        if ((index + 1) < self.visibleColArray.length) {
+          element += self.separator;
+        }
+      });
+      const newItem = Object.assign({}, item);
+      newItem['_parsedVisibleColumnText'] = element;
+      newItem['_parsedIndex'] = itemIndex;
+      result.push(newItem);
+    });
+    return result;
+  }
+
 }
 
 @NgModule({

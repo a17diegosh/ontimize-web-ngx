@@ -1,3 +1,86 @@
+## 4.0.4
+### Features
+* **OFormControl**: adding class `OFormControl` ([7a9cef6](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/7a9cef6))
+* **o-table-columns-filter**: new `mode` attribute ([1b5d8ee](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/1b5d8ee))
+* **o-table**: now the table distinguish text and numeric columns when filtering its data through the quick filter component. It also allow filering using *service cell renderer* values ([7fba4b9](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/7fba4b9))
+* **OSnackBarConfig**: new `cssClass` attribute ([eaa601b](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/eaa601b))
+
+### Bug Fixes
+* **o-list-picker**: fixed no columns selected error ([978d7cd](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/978d7cd))
+* **o-service-base-component**: fixing storage bugs [#251](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/251) sort by numeric column ([2a59669](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/2a59669))
+
+## 4.0.3 (2019-04-24)
+### Features
+* **o-combo**: new `searchable` input ([2ae599d](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/2ae599d))
+* **o-table**: new cell renderer `o-table-cell-renderer-translate` ([2763c47](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/2763c47)).
+
+### Bug Fixes
+* **o-context-menu**: remove overlay when context menu is removed ([a2bf383](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/a2bf383))
+
+## 4.0.2 (2019-04-04)
+### Features
+* **o-form**:
+  * new `header-position` input ([63f0f36](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/63f0f36))
+  * new outputs `onInsert`, `onUpdate` and `onDelete` ([85992e6](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/85992e6))
+* **OContainerCollapsibleComponent**:
+  * new `collapsed-height` and  `expanded-height` input ([6dbbd95](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/6dbbd95))
+* **o-list-picker**: new `onDialogAccept` and `onDialogCancel` outputs ([fd0247d](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/fd0247d))
+* **OFormServiceComponent**: new `onDataLoaded` output ([3d0cf70](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/3d0cf70))
+* **o-table**: new `enabled` attribute ([5d48cef](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/5d48cef)).
+* **MenuGroup, MenuItem**: new `class` attribute  ([6a4c500](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/6a4c500))
+* **o-form-navigation**: allowing to navigate through paginated components (`OServiceComponent`) details ([286ba71](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/286ba71))
+* **o-image**: new `accept-file-type` input ([cd61beb](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/cd61beb))
+* **o-form-data**: new `hide-required-marker` and `label-visible` inputs ([d39db97](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/d39db97))
+* **o-time-input**: new `hour-placeholder` and `date-placeholder` inputs ([48d3b9c](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/48d3b9c))
+* **o-form-layout-manager**: updating main content when updating, deleting or inserting new data ([20adc1d](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/20adc1d)) ([050da7c](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/050da7c))
+* **o-table-cell-renderer-service**: listening to editor changes for updating the renderer ([cf56430](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/cf56430)) ([d596c5d](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/d596c5d))
+* **OFormServiceComponent**: new `onDataLoaded` output ([3d0cf70](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/3d0cf70))
+* **o-form-data**: new `hide-required-marker` and `label-visible` inputs ([d39db97](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/d39db97)) ([a7d0e8d](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/a7d0e8d)) ([5fb5509](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/5fb5509))
+* **o-time-input**: new `hour-placeholder` and `date-placeholder` inputs ([48d3b9c](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/48d3b9c))
+
+### Bug Fixes
+* **o-table**: fixed error on table store configuration dialog ([ad6c84b](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/ad6c84b)), closes [#256](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/256)
+* **o-grid**: sort by numeric column ([2b38fb5](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/2b38fb5)), closes [#253](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/253)
+* **o-time-input**: impossible to select a different date of 01/01/1970  ([48d3b9c](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/48d3b9c)), closes [#255](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/255)
+
+## 4.0.1 (2019-03-06)
+### Features
+* **o-form**:
+  * new `include-breadcrumb` input ([80d9ddc](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/80d9ddc))
+  * new `detect-changes-on-blur` input ([d891359](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/d891359)) ([216d9ff](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/216d9ff))
+* **o-form-layout-manager**: new attributes `dialog-class`, `dialog-width`, `dialog-min-width`, `dialog-max-width`, `dialog-height`, `dialog-min-height`, `dialog-max-height` ([d891359](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/d891359)) ([216d9ff](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/216d9ff))
+* **AppConfig**: Adding properties for allowing remote configuration storage.
+* **o-list**: new `sort-columns`and `filter-case-sensitive` inputs ([b8bf534](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/b8bf534))
+* **o-search-input**: new `appearance`, `columns`, `filter-case-sensitive`, `show-case-sensitive-checkbox` and `show-menu` inputs ([eab96f6](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/eab96f6))
+* **o-button**: new button variants, *STROKED*,*BASIC*, *ICON*,*FAB* and *MINI-FAB* ([df76383](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/df76383]))([cf12fcb](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/cf12fcb]))
+* New directive **oHidden** used for hiding components ([fe54972](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/fe54972))
+
+### BREAKING CHANGES
+* **o-button**:
+  * Type `FLOATING` has been renamed to `FAB`.
+
+## 4.0.0 (2018-02-19)
+### Features
+* **o-form-data-component**: new `tooltip-hide-delay` input ([18733ef](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/18733ef]))
+* New classes  **layout-padding-vertical**,**layout-padding-horizontal**,**layout-padding-left**,**layout-padding-right**,**layout-padding-top**, **layout-padding-bottom**, **layout-margin-vertical**,**layout-margin-horizontal**,**layout-margin-left**,**layout-margin-right**,**layout-margin-top**, **layout-margin-bottom** ([6901980](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/6901980]))
+* **o-grid**:
+  * New `fixed-header` attribute ([4fa91d9](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/4fa91d9]))
+  * New `gutter-size` attribute ([4e45aaf](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/4e45aaf]))
+* **o-grid-item**: New `colspan` and `rowspan`  attributes ([f1b33a1](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/f1b33a1]))
+* **o-table-context-menu**: includes new filtering options ([059cd83](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/059cd83))
+* **o-row, o-column, o-row-collapsible** and **o-colum-collapsible**: new `layout-gap` attribute ([15ba08e](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/15ba08e))
+
+### BREAKING CHANGES
+* **o-table-cell-renderer-currency**, **o-table-cell-renderer-real**, **o-table-cell-renderer-percentage**: Attribute `decimal-digits` has been removed. Use the new attributes `min-decimal-digits` and `max-decimal-digits`([a58b414](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/a58b414))([c1a29bd](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/c1a29bd))
+* **o-button**: internal CSS class `o-button-text` has been removed.
+* **o-image**:
+  * Internal CSS class `container-image` has been renamed to `o-image-content`.
+  * Internal CSS class `input-image` has been renamed to `o-image-form-field`,
+  * Internal CSS class `image-container` has been renamed to `o-image-display-container`.
+  * Internal CSS class `auto-fit-image` has been renamed to `o-image-auto-fit`,
+  * Internal CSS class `input-image-container` has been removed.
+* Components styles: there are some minor changes in components styles.
+
 ## 4.0.0-rc.1 (2018-01-16)
 ### Features
 * New components `o-button-toggle` and `o-button-toggle-group` ([311a2ac](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/311a2ac)) ([415f8b0](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/415f8b0))
@@ -29,13 +112,10 @@
   * Row and column components now extend from `OContainerComponent` class that provides shared functionality ([4713e3e](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/4713e3e))
   * Added new attribute `icon` ([69fc936](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/69fc936))
 * New container components **o-row-collapsible** and **o-colum-collapsible** ([b1eb483](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/b1eb483)) ([0850ef3](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/0850ef3))
-* **o-row, o-column, o-row-collapsible** and **o-colum-collapsible**: new `layout-gap` attribute ([15ba08e](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/15ba08e))
 * **o-app-layout**: new `beforeOpenSidenav`, `afterOpenSidenav`, `beforeCloseSidenav` and `afterCloseSidenav` outputs ([1a2a028](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/1a2a028)), closes [#243](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/243)
 * **O_MAT_ERROR_OPTIONS**: new provider for allowing to show the input components errors as a tooltip ([db74c34](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/db74c34))
 * **O_INPUTS_OPTIONS**: new provider for allowing to configure input components ([01692e0](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/01692e0))
 * **o-form-layout-manager**: new `title-data-origin` input ([c88ab98](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/c88ab98))
-* **o-form-data-component**: new `tooltip-hide-delay` input ([18733ef](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/18733ef]))
-* New classes  **layout-padding-vertical**,**layout-padding-horizontal**,**layout-padding-left**,**layout-padding-right**,**layout-padding-top**, **layout-padding-bottom**, **layout-margin-vertical**,**layout-margin-horizontal**,**layout-margin-left**,**layout-margin-right**,**layout-margin-top**, **layout-margin-bottom** ([6901980](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/6901980]))
 
 ### Note on HammerJS
 The sliding behavior in `o-slider` component requires that HammerJS is loaded on the page. You can see the support of Material in next ([link](https://material.angular.io/guide/getting-started#step-5-gesture-support))
@@ -44,6 +124,7 @@ The sliding behavior in `o-slider` component requires that HammerJS is loaded on
 * **o-grid**: loading spinner displays properly ([7d08582](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/7d08582)), closes [#231](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/231)
 * **o-form-navigation**: fixing index error ([f487e54](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/f487e54)), closes [#238](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/238)
 * **OServiceBaseComponent**: fixed bug on service components with pagination and located inside a detail form ([9c69c4b](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/9c69c4b)) ([bb0b04a](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/bb0b04a))
+**o-grid**: It shows message of no results ([4f1878c](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/4f1878c))  closes [#245](https://github.com/OntimizeWeb/ontimize-web-ngx/issues/245)
 
 ### BREAKING CHANGES
 * **AppConfig**: removing `authGuard` property.
@@ -57,10 +138,7 @@ The sliding behavior in `o-slider` component requires that HammerJS is loaded on
   * CSS classes `o-container-title-item` and `container-title` has been replaced by `o-container-title`.
   * CSS class `o-container-content-item` has been removed.
   * CSS class `container-content` has been renamed to `o-container-gap`.
-  
 * **o-form**: Attribute `layout-fill` has been removed.
-* **o-table-cell-renderer-currency**, **o-table-cell-renderer-real**, **o-table-cell-renderer-percentage**: Attribute `decimal-digits` has been removed. Use the new attributes `min-decimal-digits` and `max-decimal-digits`([a58b414](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/a58b414))([c1a29bd](https://github.com/OntimizeWeb/ontimize-web-ngx/commit/c1a29bd))
-
 
 ## 3.2.1 (2018-12-28)
 ### Features

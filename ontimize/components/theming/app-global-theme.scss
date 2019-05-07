@@ -58,7 +58,7 @@
       margin: 6px;
       border: 3px solid;
       border-radius: 50%;
-      left:50%;
+      left: 50%;
       animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
       border-color: mat-color($primary) transparent transparent transparent;
     }
@@ -83,6 +83,69 @@
 
     100% {
       transform: rotate(360deg);
+    }
+  }
+
+  $dialog-borders-color: #929292;
+
+  .o-form-layout-dialog-overlay,
+  .o-list-picker-dialog {
+    .title-container {
+      border-bottom: 1px solid $dialog-borders-color;
+    }
+  }
+
+  .o-form-layout-dialog-overlay {
+    .title-container {
+      .mat-icon {
+        color: $dialog-borders-color;
+      }
+    }
+  }
+
+  .o-dialog-class {
+    .mat-dialog-container {
+      border: 1px solid $dialog-borders-color;
+
+      .mat-dialog-title {
+        border-bottom: 1px solid $dialog-borders-color;
+      }
+
+      .empty-filter-list {
+        color: mat-color($foreground, disabled-text);
+      }
+    }
+  }
+
+  .o-dialog-class {
+    .mat-dialog-container {
+      .mat-dialog-title {
+        line-height: mat-font-size($typography, title);
+        font-size: mat-font-size($typography, title);
+      }
+
+      .mat-dialog-content {
+        font-size: mat-font-size($typography, input);
+
+        .mat-selection-list[dense] {
+          outline: none;
+
+          .mat-list-item {
+            .empty-filter-list,
+            .mat-list-text > * {
+              font-size: mat-font-size($typography, subheading-1);
+            }
+
+            .mat-line:nth-child(n+2) {
+              font-size: mat-font-size($typography, caption);
+            }
+          }
+        }
+      }
+    }
+
+    .mat-dialog-actions > button {
+      margin-left: 12px;
     }
   }
 

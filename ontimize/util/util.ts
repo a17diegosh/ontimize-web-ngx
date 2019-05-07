@@ -1,7 +1,7 @@
-import { Base64 } from './base64';
 import { Observable } from 'rxjs';
+
 import { IFormDataComponent } from '../components/o-form-data-component.class';
-import { SessionInfo } from '../services/login.service';
+import { Base64 } from './base64';
 import { Codes } from './codes';
 
 export interface IDataService {
@@ -22,19 +22,6 @@ export interface IAuthService {
   startsession(user: string, password: string): Observable<any>;
   endsession(user: string, sessionId: number): Observable<any>;
   redirectLogin?(sessionExpired?: boolean);
-}
-
-export interface IOntimizeServiceConf {
-  urlBase?: string;
-  session: SessionInfo;
-  entity?: string;
-  kv?: Object;
-  av?: Array<string>;
-  sqltypes?: Object;
-  pagesize?: number;
-  offset?: number;
-  orderby?: Array<Object>;
-  totalsize?: number;
 }
 
 export class Util {
@@ -102,9 +89,6 @@ export class Util {
     let encoded: string = '';
     if (parentKeys) {
       encoded = Base64.encode(JSON.stringify(parentKeys));
-      // test
-      // var d = Base64.decode(encoded);
-      // console.log(parentKeys, encoded, d, JSON.parse(d));
     }
     return encoded;
   }
@@ -255,9 +239,13 @@ export class Util {
    * Returns the provided string in lowercase and without accent marks.
    * @param value the text to normalize
    */
-  static normalizeString(value: string): string {
+  static normalizeString(value: string, toLowerCase: boolean = true): string {
     if (value && value.length) {
-      return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      let result = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (toLowerCase) {
+        result = result.toLowerCase();
+      }
+      return result;
     }
     return '';
   }
@@ -307,11 +295,11 @@ export class Util {
   }
 
   static checkPixelsValueString(value: string): boolean {
-    return (value || '').toLowerCase().endsWith('px');
+    return typeof value === 'string' ? value.toLowerCase().endsWith('px') : false;
   }
 
-  static extractPixelsValue(value: string, defaultValue: number = undefined): number {
-    let result: number;
+  static extractPixelsValue(value: any, defaultValue: number = undefined): number {
+    let result: number = typeof value === 'number' ? value : undefined;
     if (Util.checkPixelsValueString(value)) {
       let parsed = parseFloat(value.substr(0, value.length - 'px'.length));
       result = isNaN(parsed) ? defaultValue : parsed;
@@ -320,8 +308,8 @@ export class Util {
   }
   /**
    * Added class 'accent' in <mat-form-field> and set the color  accent in the icons
-   * @param {ElementRef} elRef
-   * @param {O_INPUTS_OPTIONS} oInputsOptions
+   * @param elRef
+   * @param oInputsOptions
    */
 
   static parseOInputsOptions(elRef, oInputsOptions) {

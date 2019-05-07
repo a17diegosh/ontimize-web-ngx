@@ -1,21 +1,34 @@
-import { Component, EventEmitter, Injector, NgModule, OnInit, ViewEncapsulation, ElementRef } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Component, ElementRef, EventEmitter, Injector, NgModule, OnInit, ViewEncapsulation } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
+import { FloatLabelType, MatCheckboxChange, MatFormFieldAppearance } from '@angular/material';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { OTranslateService } from '../../../services';
+import { O_INPUTS_OPTIONS, OInputsOptions } from '../../../config/app-config';
+import { InputConverter } from '../../../decorators/input-converter';
+import { OTranslateService, SnackBarService } from '../../../services';
 import { OSharedModule } from '../../../shared';
-import { OInputsOptions, O_INPUTS_OPTIONS } from '../../../config/app-config';
 import { Util } from '../../../utils';
 
 export const DEFAULT_INPUTS_O_SEARCH_INPUT = [
   'placeholder',
-  'width'
+  'width',
+  'floatLabel: float-label',
+  'appearance',
+  'columns',
+  'filterCaseSensitive: filter-case-sensitive',
+  'showCaseSensitiveCheckbox: show-case-sensitive-checkbox',
+  'showMenu: show-menu'
 ];
 
 export const DEFAULT_OUTPUTS_O_SEARCH_INPUT = [
   'onSearch'
 ];
+
+declare type ColumnObject = {
+  column: string;
+  checked: boolean;
+};
 
 @Component({
   moduleId: module.id,
@@ -26,7 +39,7 @@ export const DEFAULT_OUTPUTS_O_SEARCH_INPUT = [
   outputs: DEFAULT_OUTPUTS_O_SEARCH_INPUT,
   encapsulation: ViewEncapsulation.None,
   host: {
-    'class.o-search-input': 'true'
+    '[class.o-search-input]': 'true'
   }
 })
 export class OSearchInputComponent implements OnInit {
@@ -34,36 +47,57 @@ export class OSearchInputComponent implements OnInit {
   public static DEFAULT_INPUTS_O_SEARCH_INPUT = DEFAULT_INPUTS_O_SEARCH_INPUT;
   public static DEFAULT_OUTPUTS_O_SEARCH_INPUT = DEFAULT_OUTPUTS_O_SEARCH_INPUT;
 
-  placeholder: string = 'SEARCH';
-  width: string;
+  public onSearch: EventEmitter<any> = new EventEmitter<any>();
 
-  onSearch: EventEmitter<any> = new EventEmitter<any>();
+  public placeholder: string = 'SEARCH';
+  public width: string;
+  public columns: string;
+  @InputConverter()
+  public showCaseSensitiveCheckbox: boolean = false;
+  @InputConverter()
+  public showMenu: boolean = true;
+  @InputConverter()
+  protected _filterCaseSensitive: boolean = false;
+  protected _floatLabel: FloatLabelType;
+  protected _appearance: MatFormFieldAppearance;
+  protected colArray: ColumnObject[] = [];
 
   protected formGroup: FormGroup;
   protected term: FormControl;
-
   protected translateService: OTranslateService;
   protected oInputsOptions: OInputsOptions;
+  protected snackBarService: SnackBarService;
 
-  constructor(protected injector: Injector,
-    protected elRef: ElementRef) {
+  constructor(
+    protected injector: Injector,
+    protected elRef: ElementRef
+  ) {
     this.translateService = this.injector.get(OTranslateService);
+    this.snackBarService = this.injector.get(SnackBarService);
     this.formGroup = new FormGroup({});
   }
 
-  ngOnInit() {
+  public ngOnInit(): void {
     this.term = new FormControl();
     this.formGroup.addControl('term', this.term);
 
-    this.term.valueChanges
-      .pipe(debounceTime(400))
-      .pipe(distinctUntilChanged())
-      .subscribe(term => {
-        this.onSearch.emit(term);
+    this.term.valueChanges.pipe(debounceTime(400))
+      .pipe(distinctUntilChanged()).subscribe(term => {
+        if (this.checkActiveColumns()) {
+          this.onSearch.emit(term);
+        }
       });
+
+    const colArray = Util.parseArray(this.columns, true);
+    colArray.forEach((col: string) => {
+      this.colArray.push({
+        column: col,
+        checked: true
+      });
+    });
   }
 
-  ngAfterViewInit() {
+  public ngAfterViewInit(): void {
     try {
       this.oInputsOptions = this.injector.get(O_INPUTS_OPTIONS);
     } catch (e) {
@@ -72,40 +106,115 @@ export class OSearchInputComponent implements OnInit {
     Util.parseOInputsOptions(this.elRef, this.oInputsOptions);
   }
 
-  getFormGroup(): FormGroup {
+  get floatLabel(): FloatLabelType {
+    return this._floatLabel;
+  }
+
+  set floatLabel(value: FloatLabelType) {
+    const values = ['always', 'never', 'auto'];
+    if (values.indexOf(value) === -1) {
+      value = 'auto';
+    }
+    this._floatLabel = value;
+  }
+
+  get appearance(): MatFormFieldAppearance {
+    return this._appearance;
+  }
+
+  set appearance(value: MatFormFieldAppearance) {
+    const values = ['legacy', 'standard', 'fill', 'outline'];
+    if (values.indexOf(value) === -1) {
+      value = undefined;
+    }
+    this._appearance = value;
+  }
+
+  get filterCaseSensitive(): boolean {
+    return this._filterCaseSensitive;
+  }
+
+  set filterCaseSensitive(value: boolean) {
+    this._filterCaseSensitive = value;
+  }
+
+  public getFormGroup(): FormGroup {
     return this.formGroup;
   }
 
-  getValue(): string {
+  public getValue(): string {
     return this.term.value;
   }
 
-  setValue(val: string) {
+  public setValue(val: string): void {
     this.term.setValue(val);
   }
 
-  getFormControl(): FormControl {
+  public getFormControl(): FormControl {
     return this.term;
-  }
-
-  get placeHolder(): string {
-    if (this.translateService) {
-      return this.translateService.get(this.placeholder);
-    }
-    return this.placeholder;
-  }
-
-  set placeHolder(value: string) {
-    var self = this;
-    window.setTimeout(() => {
-      self.placeholder = value;
-    }, 0);
   }
 
   get hasCustomWidth(): boolean {
     return this.width !== undefined;
   }
 
+  get showFilterMenu(): boolean {
+    return this.showMenu && this.colArray.length > 0;
+  }
+
+  public isChecked(column: ColumnObject): boolean {
+    return column.checked;
+  }
+
+  public onCheckboxChange(column: ColumnObject, event: MatCheckboxChange): void {
+    column.checked = event.checked;
+    this.triggerOnSearch();
+  }
+
+  public onSelectAllChange(event: MatCheckboxChange): void {
+    this.colArray.forEach((col: ColumnObject) => {
+      col.checked = event.checked;
+    });
+    this.triggerOnSearch();
+  }
+
+  public areAllColumnsChecked(): boolean {
+    let result: boolean = true;
+    this.colArray.forEach((col: ColumnObject) => {
+      result = result && col.checked;
+    });
+    return result;
+  }
+
+  public onFilterCaseSensitiveChange(event: MatCheckboxChange): void {
+    this.filterCaseSensitive = event.checked;
+    this.triggerOnSearch();
+  }
+
+  public getActiveColumns(): string[] {
+    return this.colArray.filter(col => col.checked).map(col => col.column);
+  }
+
+  public setActiveColumns(arg: string[]): void {
+    this.colArray.forEach((c: ColumnObject) => {
+      c.checked = arg.indexOf(c.column) !== -1;
+    });
+  }
+
+  protected checkActiveColumns(): boolean {
+    if (this.getActiveColumns().length === 0) {
+      this.snackBarService.open('MESSAGES.AVOID_QUERY_WITHOUT_QUICKFILTER_COLUMNS');
+      return false;
+    }
+    return true;
+  }
+
+  protected triggerOnSearch(): void {
+    const term = this.term.value;
+    if (this.checkActiveColumns() && Util.isDefined(term) && term.length > 0) {
+      this.onSearch.emit(term);
+    }
+  }
 }
 
 @NgModule({
