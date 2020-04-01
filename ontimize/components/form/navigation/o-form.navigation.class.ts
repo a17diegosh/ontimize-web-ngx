@@ -252,7 +252,8 @@ export class OFormNavigationClass {
 
   navigateBack() {
     if (!this.formLayoutManager && this.navigationService) {
-      const navData: ONavigationItem = this.navigationService.getPreviousRouteData();
+      this.navigationService.removeLastItem();
+      const navData: ONavigationItem = this.navigationService.getLastMainNavigationRouteData();
       if (navData) {
         let extras = {};
         extras[Codes.QUERY_PARAMS] = navData.queryParams;
